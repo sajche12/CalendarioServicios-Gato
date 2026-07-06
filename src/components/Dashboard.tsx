@@ -1107,7 +1107,7 @@ export default function Dashboard({
 
       {/* DIÁLOGO: DETALLE / VISTA PREVIA DEL SERVICIO */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 text-zinc-100 overflow-y-auto max-h-[90vh] custom-scrollbar">
+        <DialogContent className="max-w-full md:max-w-3xl lg:max-w-4xl bg-zinc-900 border-zinc-800 text-zinc-100 overflow-y-auto max-h-[90vh] custom-scrollbar">
           {selectedServicio && (() => {
             const colColor = selectedServicio.colaborador_id ? colMap.get(selectedServicio.colaborador_id)?.color || '#3b82f6' : '#71717a';
             const colName = selectedServicio.colaborador_id ? colMap.get(selectedServicio.colaborador_id)?.nombre : 'Sin Asignar';
@@ -1147,7 +1147,7 @@ export default function Dashboard({
                     {/* Tarjeta de Ruta */}
                     <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
                       <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Ruta & Logística</span>
-                      <div className="text-zinc-200 text-base font-bold flex items-center gap-2">
+                      <div className="text-zinc-200 text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <span>{selectedServicio.ruta_origen}</span>
                         <span className="text-blue-500 font-normal">➔</span>
                         <span>{selectedServicio.ruta_destino}</span>
@@ -1286,7 +1286,7 @@ export default function Dashboard({
 
       {/* 1. DIÁLOGO: CREAR / EDITAR SERVICIO */}
       <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-        <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 text-zinc-100 overflow-y-auto max-h-[90vh] custom-scrollbar">
+        <DialogContent className="max-w-full md:max-w-3xl lg:max-w-4xl bg-zinc-900 border-zinc-800 text-zinc-100 overflow-y-auto max-h-[90vh] custom-scrollbar">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {selectedServicio ? 'Editar Servicio Diario' : 'Crear Nuevo Servicio'}
