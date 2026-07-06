@@ -133,6 +133,7 @@ export default function Dashboard({
   const [srvNotas, setSrvNotas] = useState('');
   const [srvComprobanteUrl, setSrvComprobanteUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [srvTemplateId, setSrvTemplateId] = useState('none');
 
   // --- Catalog Dialog States ---
   const [isColabDialogOpen, setIsColabDialogOpen] = useState(false);
@@ -252,6 +253,7 @@ export default function Dashboard({
     setSrvEstadoRuta('No Iniciado');
     setSrvNotas('');
     setSrvComprobanteUrl('');
+    setSrvTemplateId('none');
     setIsServiceDialogOpen(true);
   };
 
@@ -272,6 +274,7 @@ export default function Dashboard({
     setSrvEstadoRuta(service.estado_ruta);
     setSrvNotas(service.notas_adicionales || '');
     setSrvComprobanteUrl(service.comprobante_url || '');
+    setSrvTemplateId('none');
     setIsServiceDialogOpen(true);
   };
 
@@ -612,7 +615,9 @@ export default function Dashboard({
               <Label className="text-xs text-zinc-500">Colaborador:</Label>
               <Select value={filterColaborador} onValueChange={(val) => setFilterColaborador(val || 'all')}>
                 <SelectTrigger className="w-[140px] h-8 bg-zinc-950 border-zinc-800 text-xs">
-                  <SelectValue placeholder="Todos" />
+                  <SelectValue placeholder="Todos">
+                    {filterColaborador === 'all' ? 'Todos' : colaboradores.find(c => c.id === filterColaborador)?.nombre || 'Todos'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                   <SelectItem value="all">Todos</SelectItem>
@@ -628,7 +633,9 @@ export default function Dashboard({
               <Label className="text-xs text-zinc-500">Pago:</Label>
               <Select value={filterPago} onValueChange={(val) => setFilterPago(val || 'all')}>
                 <SelectTrigger className="w-[130px] h-8 bg-zinc-950 border-zinc-800 text-xs">
-                  <SelectValue placeholder="Todos" />
+                  <SelectValue placeholder="Todos">
+                    {filterPago === 'all' ? 'Todos' : filterPago}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                   <SelectItem value="all">Todos</SelectItem>
@@ -677,7 +684,9 @@ export default function Dashboard({
             <div className="grid grid-cols-2 gap-2">
               <Select value={filterColaborador} onValueChange={(val) => setFilterColaborador(val || 'all')}>
                 <SelectTrigger className="w-full h-8 bg-zinc-950 border-zinc-800 text-xs text-zinc-300">
-                  <SelectValue placeholder="Colaborador" />
+                  <SelectValue placeholder="Colaborador">
+                    {filterColaborador === 'all' ? 'Todos Colab.' : colaboradores.find(c => c.id === filterColaborador)?.nombre || 'Colaborador'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                   <SelectItem value="all">Todos Colab.</SelectItem>
@@ -689,7 +698,9 @@ export default function Dashboard({
 
               <Select value={filterPago} onValueChange={(val) => setFilterPago(val || 'all')}>
                 <SelectTrigger className="w-full h-8 bg-zinc-950 border-zinc-800 text-xs text-zinc-300">
-                  <SelectValue placeholder="Estado Pago" />
+                  <SelectValue placeholder="Estado Pago">
+                    {filterPago === 'all' ? 'Todos Pagos' : filterPago}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                   <SelectItem value="all">Todos Pagos</SelectItem>
@@ -1100,9 +1111,14 @@ export default function Dashboard({
             {!selectedServicio && (
               <div className="space-y-1.5 bg-zinc-950/60 p-3 rounded-lg border border-zinc-850">
                 <Label htmlFor="template" className="text-zinc-400 text-xs font-semibold">Precargar desde Plantilla de Itinerario:</Label>
-                <Select onValueChange={(val) => handleApplyTemplate(val || 'none')} defaultValue="none">
-                  <SelectTrigger id="template" className="bg-zinc-950 border-zinc-800 h-9 text-sm text-zinc-200">
-                    <SelectValue placeholder="Seleccionar una plantilla..." />
+                <Select value={srvTemplateId} onValueChange={(val) => {
+                  setSrvTemplateId(val || 'none');
+                  handleApplyTemplate(val || 'none');
+                }}>
+                  <SelectTrigger id="template" className="w-full bg-zinc-950 border-zinc-800 h-9 text-sm text-zinc-200">
+                    <SelectValue placeholder="Seleccionar una plantilla...">
+                      {srvTemplateId === 'none' ? 'Ninguna (Crear desde cero)' : plantillas.find(p => p.id === srvTemplateId)?.titulo || 'Ninguna'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                     <SelectItem value="none">Ninguna (Crear desde cero)</SelectItem>
@@ -1238,8 +1254,12 @@ export default function Dashboard({
               <div className="space-y-1.5">
                 <Label htmlFor="colaborador" className="text-zinc-300 text-xs">Asignar Colaborador (Encargado)</Label>
                 <Select value={srvColaboradorId} onValueChange={(val) => setSrvColaboradorId(val || '')}>
-                  <SelectTrigger id="colaborador" className="bg-zinc-950 border-zinc-800 h-9 text-sm">
-                    <SelectValue placeholder="Ninguno (Sin Asignar)" />
+                  <SelectTrigger id="colaborador" className="w-full bg-zinc-950 border-zinc-800 h-9 text-sm">
+                    <SelectValue placeholder="Ninguno (Sin Asignar)">
+                      {srvColaboradorId && srvColaboradorId !== 'none'
+                        ? colaboradores.find(c => c.id === srvColaboradorId)?.nombre || 'Sin Colaborador'
+                        : 'Ninguno (Sin Asignar)'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                     <SelectItem value="none">Sin Colaborador</SelectItem>
@@ -1253,8 +1273,12 @@ export default function Dashboard({
               <div className="space-y-1.5">
                 <Label htmlFor="proveedor" className="text-zinc-300 text-xs">Asignar Proveedor Externo</Label>
                 <Select value={srvProveedorId} onValueChange={(val) => setSrvProveedorId(val || '')}>
-                  <SelectTrigger id="proveedor" className="bg-zinc-950 border-zinc-800 h-9 text-sm">
-                    <SelectValue placeholder="Ninguno" />
+                  <SelectTrigger id="proveedor" className="w-full bg-zinc-950 border-zinc-800 h-9 text-sm">
+                    <SelectValue placeholder="Ninguno">
+                      {srvProveedorId && srvProveedorId !== 'none'
+                        ? proveedores.find(p => p.id === srvProveedorId)?.nombre || 'Ninguno (Propio)'
+                        : 'Ninguno (Propio)'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                     <SelectItem value="none">Ninguno (Propio)</SelectItem>
@@ -1270,8 +1294,8 @@ export default function Dashboard({
               <div className="space-y-1.5">
                 <Label htmlFor="estado_pago" className="text-zinc-300 text-xs">Estado Pago</Label>
                 <Select value={srvEstadoPago} onValueChange={(val) => setSrvEstadoPago((val as EstadoPago) || 'Pendiente')}>
-                  <SelectTrigger id="estado_pago" className="bg-zinc-950 border-zinc-800 h-9 text-sm">
-                    <SelectValue />
+                  <SelectTrigger id="estado_pago" className="w-full bg-zinc-950 border-zinc-800 h-9 text-sm">
+                    <SelectValue>{srvEstadoPago}</SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                     <SelectItem value="Pendiente">Pendiente</SelectItem>
@@ -1284,8 +1308,8 @@ export default function Dashboard({
               <div className="space-y-1.5">
                 <Label htmlFor="estado_ruta" className="text-zinc-300 text-xs">Estado de Ruta</Label>
                 <Select value={srvEstadoRuta} onValueChange={(val) => setSrvEstadoRuta((val as EstadoRuta) || 'No Iniciado')}>
-                  <SelectTrigger id="estado_ruta" className="bg-zinc-950 border-zinc-800 h-9 text-sm">
-                    <SelectValue />
+                  <SelectTrigger id="estado_ruta" className="w-full bg-zinc-950 border-zinc-800 h-9 text-sm">
+                    <SelectValue>{srvEstadoRuta}</SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                     <SelectItem value="No Iniciado">No Iniciado</SelectItem>
