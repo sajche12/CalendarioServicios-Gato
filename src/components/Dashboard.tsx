@@ -18,6 +18,7 @@ import {
   savePlantilla
 } from '@/app/actions/db';
 import { Colaborador, Proveedor, PlantillaItinerario, ServicioDiario, EstadoPago, EstadoRuta } from '@/types';
+import { saveSubscription, deleteSubscription, sendTestNotification } from '@/app/actions/push';
 import {
   Card,
   CardHeader,
@@ -67,7 +68,10 @@ import {
   Edit2,
   X,
   SlidersHorizontal,
-  Check
+  Check,
+  Bell,
+  BellOff,
+  BellRing
 } from 'lucide-react';
 import {
   startOfMonth,
@@ -143,6 +147,10 @@ export default function Dashboard({
   const [srvDivisa, setSrvDivisa] = useState<'GTQ' | 'USD'>('GTQ');
   const [srvTasaCambio, setSrvTasaCambio] = useState<number>(7.80);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isPushSupported, setIsPushSupported] = useState(false);
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
+  const [pushLoading, setPushLoading] = useState(false);
 
   // --- Catalog Dialog States ---
   const [isColabDialogOpen, setIsColabDialogOpen] = useState(false);
@@ -383,6 +391,116 @@ export default function Dashboard({
       setSrvEstadoPagoColaborador('Abono Parcial');
     }
   }, [srvMontoTotalColaborador, srvMontoColaborador]);
+
+  // --- Push Notifications Setup ---
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+      setIsPushSupported(true);
+      
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.pushManager.getSubscription().then((subscription) => {
+          if (subscription) {
+            setPushSubscription(subscription);
+            setIsPushSubscribed(true);
+          }
+        });
+      });
+    }
+  }, []);
+
+  const handleSubscribePush = async () => {
+    if (!isPushSupported) return;
+    setPushLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('Permiso de notificaciones rechazado por el usuario.');
+        setPushLoading(false);
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        throw new Error('La clave VAPID pública no está configurada.');
+      }
+      
+      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+
+      const subJson = subscription.toJSON();
+      const res = await saveSubscription(subJson);
+      if (res.success) {
+        setPushSubscription(subscription);
+        setIsPushSubscribed(true);
+        alert('Dispositivo registrado con éxito para notificaciones.');
+      } else {
+        alert(`Error al registrar el dispositivo: ${res.error}`);
+      }
+    } catch (err: any) {
+      console.error('Error al suscribir push:', err);
+      alert(`Error de suscripción: ${err.message}`);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleUnsubscribePush = async () => {
+    if (!pushSubscription) return;
+    setPushLoading(true);
+    try {
+      const endpoint = pushSubscription.endpoint;
+      await pushSubscription.unsubscribe();
+      const res = await deleteSubscription(endpoint);
+      if (res.success) {
+        setPushSubscription(null);
+        setIsPushSubscribed(false);
+        alert('Notificaciones desactivadas en este dispositivo.');
+      } else {
+        alert(`Error al remover del servidor: ${res.error}`);
+      }
+    } catch (err: any) {
+      console.error('Error al cancelar suscripción push:', err);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    if (!pushSubscription) return;
+    setPushLoading(true);
+    try {
+      const res = await sendTestNotification(pushSubscription.endpoint);
+      if (!res.success) {
+        alert(`Error al enviar prueba: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
 
   const handleApplyTemplate = (templateId: string) => {
     if (templateId === 'none') return;
@@ -673,6 +791,46 @@ export default function Dashboard({
         </div>
 
         <div className="flex items-center gap-2">
+          {isPushSupported && (
+            <div className="flex items-center gap-1.5">
+              {isPushSubscribed ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pushLoading}
+                    onClick={handleSendTestPush}
+                    className="border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-all gap-1.5 h-8 text-[11px] font-semibold bg-zinc-950/60"
+                  >
+                    <BellRing className="h-3.5 w-3.5 text-blue-400" />
+                    <span className="hidden md:inline">Probar Notificación</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={pushLoading}
+                    onClick={handleUnsubscribePush}
+                    className="text-zinc-400 hover:text-red-400 transition-all gap-1.5 h-8 text-[11px] font-semibold"
+                  >
+                    <BellOff className="h-3.5 w-3.5 text-red-500" />
+                    <span className="hidden md:inline">Desactivar Alertas</span>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pushLoading}
+                  onClick={handleSubscribePush}
+                  className="border-blue-900/60 bg-blue-950/30 text-blue-400 hover:text-blue-300 hover:bg-blue-950/50 transition-all gap-1.5 h-8 text-[11px] font-semibold"
+                >
+                  <Bell className="h-3.5 w-3.5" />
+                  <span>Activar Alertas Celular</span>
+                </Button>
+              )}
+            </div>
+          )}
+
           <Button
             variant="ghost"
             size="sm"
@@ -680,7 +838,7 @@ export default function Dashboard({
               await logout();
               router.refresh();
             }}
-            className="text-zinc-400 hover:text-red-400 hover:bg-red-950/20 transition-all gap-1.5"
+            className="text-zinc-400 hover:text-red-400 hover:bg-red-950/20 transition-all gap-1.5 h-8"
           >
             <LogOut className="h-4 w-4" />
             <span className="hidden sm:inline">Cerrar Sesión</span>
