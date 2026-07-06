@@ -46,6 +46,11 @@ export interface ServicioDiario {
   estado_ruta: EstadoRuta;
   notas_adicionales: string | null;
   comprobante_url: string | null;
+  monto_pagado_colaborador: number;
+  monto_total_colaborador: number;
+  estado_pago_colaborador: EstadoPago;
+  divisa: 'GTQ' | 'USD';
+  tasa_cambio: number;
   created_at: string;
   // Relaciones cargadas opcionalmente
   colaborador?: Colaborador | null;

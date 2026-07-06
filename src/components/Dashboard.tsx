@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { PhoneInput } from 'react-international-phone';
+import 'react-international-phone/style.css';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { logout } from '@/app/actions/auth';
@@ -135,6 +137,12 @@ export default function Dashboard({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [srvTemplateId, setSrvTemplateId] = useState('none');
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [srvMontoColaborador, setSrvMontoColaborador] = useState(0);
+  const [srvMontoTotalColaborador, setSrvMontoTotalColaborador] = useState(0);
+  const [srvEstadoPagoColaborador, setSrvEstadoPagoColaborador] = useState<EstadoPago>('Pendiente');
+  const [srvDivisa, setSrvDivisa] = useState<'GTQ' | 'USD'>('GTQ');
+  const [srvTasaCambio, setSrvTasaCambio] = useState<number>(7.80);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   // --- Catalog Dialog States ---
   const [isColabDialogOpen, setIsColabDialogOpen] = useState(false);
@@ -255,6 +263,11 @@ export default function Dashboard({
     setSrvNotas('');
     setSrvComprobanteUrl('');
     setSrvTemplateId('none');
+    setSrvMontoColaborador(0);
+    setSrvMontoTotalColaborador(0);
+    setSrvEstadoPagoColaborador('Pendiente');
+    setSrvDivisa('GTQ');
+    setIsConfirmingDelete(false);
     setIsServiceDialogOpen(true);
   };
 
@@ -276,6 +289,12 @@ export default function Dashboard({
     setSrvNotas(service.notas_adicionales || '');
     setSrvComprobanteUrl(service.comprobante_url || '');
     setSrvTemplateId('none');
+    setSrvMontoColaborador(Number(service.monto_pagado_colaborador || 0));
+    setSrvMontoTotalColaborador(Number(service.monto_total_colaborador || 0));
+    setSrvEstadoPagoColaborador(service.estado_pago_colaborador || 'Pendiente');
+    setSrvDivisa(service.divisa || 'GTQ');
+    setSrvTasaCambio(Number(service.tasa_cambio || 7.80));
+    setIsConfirmingDelete(false);
     setIsServiceDialogOpen(true);
   };
 
@@ -289,6 +308,81 @@ export default function Dashboard({
     setIsDetailDialogOpen(false);
     handleOpenEditService(selectedServicio);
   };
+
+  const handleToggleCurrency = (newDivisa: 'GTQ' | 'USD') => {
+    if (srvDivisa === newDivisa) return;
+    setSrvDivisa(newDivisa);
+    if (newDivisa === 'USD') {
+      setSrvMonto(parseFloat((srvMonto / srvTasaCambio).toFixed(2)));
+    } else {
+      setSrvMonto(parseFloat((srvMonto * srvTasaCambio).toFixed(2)));
+    }
+  };
+
+  const handleDeleteClick = async () => {
+    if (!selectedServicio) return;
+    if (!isConfirmingDelete) {
+      setIsConfirmingDelete(true);
+      setTimeout(() => {
+        setIsConfirmingDelete(false);
+      }, 4000);
+      return;
+    }
+    
+    setLoadingAction(true);
+    try {
+      const response = await deleteServicio(selectedServicio.id);
+      if (response.success) {
+        setIsServiceDialogOpen(false);
+        setIsDetailDialogOpen(false);
+      } else {
+        alert(`Error al eliminar: ${response.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoadingAction(false);
+      setIsConfirmingDelete(false);
+    }
+  };
+
+  // --- Frankfurter API: Fetch tipo de cambio real ---
+  useEffect(() => {
+    const fetchTasaCambio = async () => {
+      try {
+        const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=GTQ');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.rates?.GTQ) {
+            setSrvTasaCambio(Number(data.rates.GTQ));
+            console.log('Tasa de cambio cargada de Frankfurter:', data.rates.GTQ);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching exchange rate from Frankfurter:', err);
+      }
+    };
+    fetchTasaCambio();
+  }, []);
+
+  // Auto-calcular estado de pago del colaborador
+  useEffect(() => {
+    const total = Number(srvMontoTotalColaborador) || 0;
+    const paid = Number(srvMontoColaborador) || 0;
+    
+    if (total <= 0) {
+      setSrvEstadoPagoColaborador('Pendiente');
+      return;
+    }
+    
+    if (paid === 0) {
+      setSrvEstadoPagoColaborador('Pendiente');
+    } else if (paid >= total) {
+      setSrvEstadoPagoColaborador('Pagado Total');
+    } else {
+      setSrvEstadoPagoColaborador('Abono Parcial');
+    }
+  }, [srvMontoTotalColaborador, srvMontoColaborador]);
 
   const handleApplyTemplate = (templateId: string) => {
     if (templateId === 'none') return;
@@ -352,13 +446,18 @@ export default function Dashboard({
         ruta_origen: srvOrigen,
         ruta_destino: srvDestino,
         logistica_transporte: srvLogistica || null,
-        colaborador_id: srvColaboradorId || null,
-        proveedor_id: srvProveedorId || null,
+        colaborador_id: (srvColaboradorId && srvColaboradorId !== 'none') ? srvColaboradorId : null,
+        proveedor_id: (srvProveedorId && srvProveedorId !== 'none') ? srvProveedorId : null,
         monto_servicio: Number(srvMonto),
         estado_pago: srvEstadoPago,
         estado_ruta: srvEstadoRuta,
         notas_adicionales: srvNotas || null,
-        comprobante_url: srvComprobanteUrl || null
+        comprobante_url: srvComprobanteUrl || null,
+        monto_pagado_colaborador: Number(srvMontoColaborador),
+        monto_total_colaborador: Number(srvMontoTotalColaborador),
+        estado_pago_colaborador: srvEstadoPagoColaborador,
+        divisa: srvDivisa,
+        tasa_cambio: Number(srvTasaCambio)
       });
 
       if (response.success) {
@@ -373,24 +472,7 @@ export default function Dashboard({
     }
   };
 
-  const handleDeleteService = async () => {
-    if (!selectedServicio) return;
-    if (!confirm('¿Estás seguro de eliminar este servicio?')) return;
 
-    setLoadingAction(true);
-    try {
-      const response = await deleteServicio(selectedServicio.id);
-      if (response.success) {
-        setIsServiceDialogOpen(false);
-      } else {
-        alert(`Error al eliminar: ${response.error}`);
-      }
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
-    } finally {
-      setLoadingAction(false);
-    }
-  };
 
   // --- Handlers: Catálogos ---
   const handleOpenColabDialog = (colab?: Colaborador) => {
@@ -1185,25 +1267,61 @@ export default function Dashboard({
                     </div>
                   </div>
 
-                  {/* Fila de Finanzas y Notas */}
+                  {/* Fila de Finanzas de Servicio y Colaborador */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
-                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Finanzas</span>
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Finanzas de Servicio</span>
                       <p className="text-xl font-mono font-bold text-emerald-400">
-                        Q {Number(selectedServicio.monto_servicio).toFixed(2)}
+                        {selectedServicio.divisa === 'USD' ? '$' : 'Q'} {Number(selectedServicio.monto_servicio).toFixed(2)}
                       </p>
                       <p className="text-xs text-zinc-400">
                         <strong className="text-zinc-500">Estado de Pago:</strong> {selectedServicio.estado_pago}
                       </p>
+                      {selectedServicio.divisa === 'USD' && (
+                        <p className="text-[10px] text-zinc-500 font-mono">
+                          Tasa cambio: 1 USD = Q{Number(selectedServicio.tasa_cambio || 7.80).toFixed(2)}
+                        </p>
+                      )}
                     </div>
 
                     <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
-                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Contacto Cliente</span>
-                      <p className="text-zinc-200 font-mono text-xs mt-1">
-                        {selectedServicio.cliente_telefono || 'Sin registrar'}
-                      </p>
-                      <p className="text-xs text-zinc-500">Usado para enviar notificaciones directas.</p>
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Pago a Colaborador</span>
+                      <div className="space-y-1 mt-1">
+                        <p className="text-xs text-zinc-400">
+                          <strong className="text-zinc-500">Monto Acordado:</strong>{' '}
+                          <span className="text-zinc-200 font-mono font-medium">
+                            Q {Number(selectedServicio.monto_total_colaborador || 0).toFixed(2)}
+                          </span>
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          <strong className="text-zinc-500">Monto Pagado:</strong>{' '}
+                          <span className="text-emerald-400 font-mono font-medium">
+                            Q {Number(selectedServicio.monto_pagado_colaborador || 0).toFixed(2)}
+                          </span>
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          <strong className="text-zinc-500">Saldo Pendiente:</strong>{' '}
+                          <span className={`font-mono font-bold ${(selectedServicio.monto_total_colaborador - selectedServicio.monto_pagado_colaborador) > 0 ? 'text-amber-500' : 'text-zinc-500'}`}>
+                            Q {(Number(selectedServicio.monto_total_colaborador || 0) - Number(selectedServicio.monto_pagado_colaborador || 0)).toFixed(2)}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="text-xs text-zinc-400 flex items-center mt-2 pt-1 border-t border-zinc-900">
+                        <strong className="text-zinc-500">Estado:</strong>{' '}
+                        <Badge className={`text-[10px] font-semibold border ml-2 ${getPagoBadgeColor(selectedServicio.estado_pago_colaborador || 'Pendiente')}`}>
+                          {selectedServicio.estado_pago_colaborador || 'Pendiente'}
+                        </Badge>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Fila de Contacto */}
+                  <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
+                    <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Contacto Cliente</span>
+                    <p className="text-zinc-200 font-mono text-xs mt-1">
+                      {selectedServicio.cliente_telefono || 'Sin registrar'}
+                    </p>
+                    <p className="text-xs text-zinc-500">Usado para enviar notificaciones directas por WhatsApp.</p>
                   </div>
 
                   {/* Notas */}
@@ -1261,6 +1379,15 @@ export default function Dashboard({
                   </div>
 
                   <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleDeleteClick}
+                      disabled={loadingAction}
+                      className="bg-red-950/30 text-red-400 border border-red-900/50 hover:bg-red-900/40 hover:text-red-300 px-3 h-9 text-xs gap-1"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {isConfirmingDelete ? '¿Seguro?' : 'Eliminar'}
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
@@ -1376,19 +1503,56 @@ export default function Dashboard({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="cliente_tel" className="text-zinc-300 text-xs">Teléfono del Cliente (WhatsApp)</Label>
-                <Input
-                  id="cliente_tel"
-                  type="tel"
-                  placeholder="Ej: +50244445555"
+                <Label className="text-zinc-300 text-xs block">Teléfono del Cliente (WhatsApp)</Label>
+                <PhoneInput
+                  defaultCountry="gt"
                   value={srvClienteTelefono}
-                  onChange={(e) => setSrvClienteTelefono(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100 h-9 text-sm"
+                  onChange={(phone) => setSrvClienteTelefono(phone)}
+                  inputClassName="w-full flex-1 bg-zinc-950 border-zinc-800 h-9 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                  countrySelectorStyleProps={{
+                    buttonClassName: "bg-zinc-950 border border-zinc-800 h-9 rounded-l-lg px-2 flex items-center justify-center hover:bg-zinc-900 transition-colors"
+                  }}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="monto" className="text-zinc-300 text-xs">Monto Cobrado (Q/USD)</Label>
+                <Label className="text-zinc-300 text-xs">Moneda (Divisa)</Label>
+                <div className="flex rounded-lg overflow-hidden border border-zinc-850 h-9">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCurrency('GTQ')}
+                    className={`flex-1 text-xs font-bold transition-colors ${srvDivisa === 'GTQ' ? 'bg-blue-600 text-zinc-50' : 'bg-zinc-950 text-zinc-400 hover:text-zinc-200'}`}
+                  >
+                    GTQ (Q)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCurrency('USD')}
+                    className={`flex-1 text-xs font-bold transition-colors ${srvDivisa === 'USD' ? 'bg-blue-600 text-zinc-50' : 'bg-zinc-950 text-zinc-400 hover:text-zinc-200'}`}
+                  >
+                    USD ($)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-zinc-950/40 p-3 rounded-lg border border-zinc-850">
+              <div className="space-y-1.5">
+                <Label htmlFor="tasa_cambio" className="text-zinc-300 text-xs">Tasa de Cambio (1 USD = Q)</Label>
+                <Input
+                  id="tasa_cambio"
+                  type="number"
+                  step="0.0001"
+                  min={0.0001}
+                  value={srvTasaCambio}
+                  onChange={(e) => setSrvTasaCambio(parseFloat(e.target.value) || 7.80)}
+                  className="bg-zinc-950 border-zinc-800 text-zinc-100 h-9 text-sm"
+                  disabled={srvDivisa === 'GTQ'}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="monto" className="text-zinc-300 text-xs font-semibold">Monto Cobrado ({srvDivisa === 'GTQ' ? 'Q' : '$'})*</Label>
                 <Input
                   id="monto"
                   type="number"
@@ -1478,6 +1642,54 @@ export default function Dashboard({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Fila adicional para registrar el pago al colaborador */}
+            <div className="bg-zinc-950/20 p-3 rounded-lg border border-zinc-850 space-y-3">
+              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider block">Control de Pago al Colaborador</span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="monto_total_colab" className="text-zinc-300 text-xs">Monto Total Acordado (Q)</Label>
+                  <Input
+                    id="monto_total_colab"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={srvMontoTotalColaborador}
+                    onChange={(e) => setSrvMontoTotalColaborador(Number(e.target.value) || 0)}
+                    className="bg-zinc-950 border-zinc-800 h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="monto_colab" className="text-zinc-300 text-xs">Monto Pagado en este Momento (Q)</Label>
+                  <Input
+                    id="monto_colab"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={srvMontoColaborador}
+                    onChange={(e) => setSrvMontoColaborador(Number(e.target.value) || 0)}
+                    className="bg-zinc-950 border-zinc-800 h-9 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Cálculos automáticos */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-zinc-950/60 rounded-md border border-zinc-900 text-xs">
+                <div className="text-zinc-400">
+                  <span>Saldo Pendiente: </span>
+                  <span className={`font-mono font-bold ${(srvMontoTotalColaborador - srvMontoColaborador) > 0 ? 'text-amber-500' : 'text-zinc-400'}`}>
+                    Q {Math.max(0, srvMontoTotalColaborador - srvMontoColaborador).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-zinc-400">
+                  <span>Estado: </span>
+                  <Badge className={`text-[10px] font-semibold border ${getPagoBadgeColor(srvEstadoPagoColaborador)}`}>
+                    {srvEstadoPagoColaborador}
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -1575,11 +1787,12 @@ export default function Dashboard({
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={handleDeleteService}
+                  onClick={handleDeleteClick}
                   disabled={loadingAction}
-                  className="bg-red-950/30 text-red-400 border border-red-900/50 hover:bg-red-900/40 hover:text-red-300 gap-1.5"
+                  className="bg-red-950/30 text-red-400 border border-red-900/50 hover:bg-red-900/40 hover:text-red-300 gap-1.5 animate-pulse"
                 >
-                  <Trash2 className="h-4 w-4" /> Eliminar
+                  <Trash2 className="h-4 w-4" />
+                  {isConfirmingDelete ? '¿Seguro?' : 'Eliminar'}
                 </Button>
               ) : (
                 <div />
@@ -1630,14 +1843,15 @@ export default function Dashboard({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="colab_telefono" className="text-xs">Teléfono</Label>
-              <Input
-                id="colab_telefono"
-                type="tel"
-                placeholder="Ej: +502 5555 6666"
+              <Label className="text-xs block">Teléfono</Label>
+              <PhoneInput
+                defaultCountry="gt"
                 value={colabTelefono}
-                onChange={(e) => setColabTelefono(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                onChange={(phone) => setColabTelefono(phone)}
+                inputClassName="w-full flex-1 bg-zinc-950 border-zinc-800 h-9 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                countrySelectorStyleProps={{
+                  buttonClassName: "bg-zinc-950 border border-zinc-800 h-9 rounded-l-lg px-2 flex items-center justify-center hover:bg-zinc-900 transition-colors"
+                }}
               />
             </div>
 
@@ -1714,14 +1928,15 @@ export default function Dashboard({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="prov_telefono" className="text-xs">Teléfono de contacto</Label>
-              <Input
-                id="prov_telefono"
-                type="tel"
-                placeholder="Ej: +502 4444 3333"
+              <Label className="text-xs block">Teléfono de contacto</Label>
+              <PhoneInput
+                defaultCountry="gt"
                 value={provTelefono}
-                onChange={(e) => setProvTelefono(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                onChange={(phone) => setProvTelefono(phone)}
+                inputClassName="w-full flex-1 bg-zinc-950 border-zinc-800 h-9 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                countrySelectorStyleProps={{
+                  buttonClassName: "bg-zinc-950 border border-zinc-800 h-9 rounded-l-lg px-2 flex items-center justify-center hover:bg-zinc-900 transition-colors"
+                }}
               />
             </div>
 

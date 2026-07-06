@@ -150,8 +150,8 @@ export async function saveServicio(servicio: Omit<ServicioDiario, 'id' | 'create
 
   // Limpiar valores vacíos o nulos para evitar errores de tipo en UUIDs
   const formattedServicio: any = { ...servicio };
-  if (!formattedServicio.colaborador_id) formattedServicio.colaborador_id = null;
-  if (!formattedServicio.proveedor_id) formattedServicio.proveedor_id = null;
+  if (!formattedServicio.colaborador_id || formattedServicio.colaborador_id === 'none') formattedServicio.colaborador_id = null;
+  if (!formattedServicio.proveedor_id || formattedServicio.proveedor_id === 'none') formattedServicio.proveedor_id = null;
   if (!formattedServicio.hora) formattedServicio.hora = null;
 
   if (servicio.id) {

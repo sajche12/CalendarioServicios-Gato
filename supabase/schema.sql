@@ -49,6 +49,11 @@ create table if not exists servicios_diarios (
   estado_ruta text check (estado_ruta in ('No Iniciado', 'En Ruta', 'Retrasado', 'Completado')) default 'No Iniciado',
   notas_adicionales text,
   comprobante_url text,
+  monto_pagado_colaborador numeric(10,2) default 0.00,
+  monto_total_colaborador numeric(10,2) default 0.00,
+  estado_pago_colaborador text check (estado_pago_colaborador in ('Pendiente', 'Abono Parcial', 'Pagado Total')) default 'Pendiente',
+  divisa text check (divisa in ('GTQ', 'USD')) default 'GTQ',
+  tasa_cambio numeric(10,4) default 7.8000,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
