@@ -49,6 +49,11 @@ create table if not exists servicios_diarios (
   estado_ruta text check (estado_ruta in ('No Iniciado', 'En Ruta', 'Retrasado', 'Completado')) default 'No Iniciado',
   notas_adicionales text,
   comprobante_url text,
+  monto_pagado_colaborador numeric(10,2) default 0.00,
+  monto_total_colaborador numeric(10,2) default 0.00,
+  estado_pago_colaborador text check (estado_pago_colaborador in ('Pendiente', 'Abono Parcial', 'Pagado Total')) default 'Pendiente',
+  divisa text check (divisa in ('GTQ', 'USD')) default 'GTQ',
+  tasa_cambio numeric(10,4) default 7.8000,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -72,3 +77,12 @@ create policy "Comprobantes public read" on storage.objects
 -- Crear política de inserción pública para subir comprobantes (bypasseada por service_role)
 create policy "Comprobantes public insert" on storage.objects
   for insert with check (bucket_id = 'comprobantes-bucket');
+
+-- Tabla para almacenar suscripciones Push de los dispositivos
+create table if not exists public.suscripciones_push (
+  id uuid default gen_random_uuid() primary key,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);

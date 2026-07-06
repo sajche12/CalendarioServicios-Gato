@@ -128,3 +128,38 @@
     @apply font-sans;
   }
 }
+
+/* Custom overrides for react-international-phone in dark mode */
+.dark .react-international-phone-input {
+  background-color: #09090b !important;
+  color: #f4f4f5 !important;
+  border-color: #27272a !important;
+  border-radius: 0 0.5rem 0.5rem 0 !important;
+}
+
+.dark .react-international-phone-country-selector-button {
+  background-color: #09090b !important;
+  border-color: #27272a !important;
+  border-radius: 0.5rem 0 0 0.5rem !important;
+}
+
+.dark .react-international-phone-country-selector-dropdown {
+  background-color: #18181b !important;
+  border: 1px solid #27272a !important;
+  color: #f4f4f5 !important;
+}
+
+.dark .react-international-phone-country-selector-dropdown__list-item {
+  background-color: #18181b !important;
+  color: #f4f4f5 !important;
+}
+
+.dark .react-international-phone-country-selector-dropdown__list-item:hover {
+  background-color: #27272a !important;
+  color: #ffffff !important;
+}
+
+.dark .react-international-phone-country-selector-dropdown__list-item--selected {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
