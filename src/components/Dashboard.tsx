@@ -134,6 +134,7 @@ export default function Dashboard({
   const [srvComprobanteUrl, setSrvComprobanteUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [srvTemplateId, setSrvTemplateId] = useState('none');
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
   // --- Catalog Dialog States ---
   const [isColabDialogOpen, setIsColabDialogOpen] = useState(false);
@@ -276,6 +277,17 @@ export default function Dashboard({
     setSrvComprobanteUrl(service.comprobante_url || '');
     setSrvTemplateId('none');
     setIsServiceDialogOpen(true);
+  };
+
+  const handleOpenDetailService = (service: ServicioDiario) => {
+    setSelectedServicio(service);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleTransitionToEdit = () => {
+    if (!selectedServicio) return;
+    setIsDetailDialogOpen(false);
+    handleOpenEditService(selectedServicio);
   };
 
   const handleApplyTemplate = (templateId: string) => {
@@ -792,7 +804,7 @@ export default function Dashboard({
                                 key={service.id}
                                 onClick={(e) => {
                                   e.stopPropagation(); // Evitar que abra un nuevo servicio
-                                  handleOpenEditService(service);
+                                  handleOpenDetailService(service);
                                 }}
                                 className="text-[10px] rounded p-1 bg-zinc-950/80 border-l-[3px] border hover:bg-zinc-900 flex items-center justify-between group transition-colors border-zinc-850"
                                 style={{ borderLeftColor: colColor }}
@@ -840,7 +852,7 @@ export default function Dashboard({
                   return (
                     <Card
                       key={service.id}
-                      onClick={() => handleOpenEditService(service)}
+                      onClick={() => handleOpenDetailService(service)}
                       className="border-zinc-800/80 bg-zinc-900/30 hover:bg-zinc-900/50 transition-all overflow-hidden"
                     >
                       {/* Borde superior con color del colaborador */}
@@ -1092,6 +1104,185 @@ export default function Dashboard({
       {/* ========================================================================= */}
       {/* 🛠️ DIÁLOGOS DE FORMULARIOS DE CREACIÓN / EDICIÓN */}
       {/* ========================================================================= */}
+
+      {/* DIÁLOGO: DETALLE / VISTA PREVIA DEL SERVICIO */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 text-zinc-100 overflow-y-auto max-h-[90vh] custom-scrollbar">
+          {selectedServicio && (() => {
+            const colColor = selectedServicio.colaborador_id ? colMap.get(selectedServicio.colaborador_id)?.color || '#3b82f6' : '#71717a';
+            const colName = selectedServicio.colaborador_id ? colMap.get(selectedServicio.colaborador_id)?.nombre : 'Sin Asignar';
+            const colPhone = selectedServicio.colaborador_id ? colMap.get(selectedServicio.colaborador_id)?.telefono : null;
+            const provName = selectedServicio.proveedor_id ? provMap.get(selectedServicio.proveedor_id)?.nombre : null;
+            const provPhone = selectedServicio.proveedor_id ? provMap.get(selectedServicio.proveedor_id)?.telefono : null;
+
+            const wpMessage = `Hola ${selectedServicio.cliente_grupo}, te saludamos de TourFlow. Te recordamos que tu traslado programado para el día ${format(parseISO(selectedServicio.fecha), 'dd/MM/yyyy')} a las ${selectedServicio.hora ? selectedServicio.hora.slice(0, 5) : '08:00'} con ruta ${selectedServicio.ruta_origen} hacia ${selectedServicio.ruta_destino} está listo. Tu encargado asignado es ${colName}. ¡Buen viaje!`;
+            const wpUrl = `https://wa.me/${selectedServicio.cliente_telefono ? selectedServicio.cliente_telefono.replace(/[^0-9]/g, '') : ''}?text=${encodeURIComponent(wpMessage)}`;
+
+            return (
+              <>
+                <DialogHeader className="border-b border-zinc-800 pb-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-mono tracking-widest text-blue-400">Vista Previa de Itinerario</span>
+                    <div className="flex gap-1.5">
+                      <Badge className={`text-[10px] font-semibold border ${getPagoBadgeColor(selectedServicio.estado_pago)}`}>
+                        {selectedServicio.estado_pago}
+                      </Badge>
+                      <Badge className={`text-[10px] font-semibold border ${getRutaBadgeColor(selectedServicio.estado_ruta)}`}>
+                        {selectedServicio.estado_ruta}
+                      </Badge>
+                    </div>
+                  </div>
+                  <DialogTitle className="text-2xl font-black text-zinc-50 flex items-center justify-between mt-1">
+                    {selectedServicio.cliente_grupo}
+                  </DialogTitle>
+                  <DialogDescription className="text-zinc-400 text-xs">
+                    Programado para el {format(parseISO(selectedServicio.fecha), "eeee dd 'de' MMMM, yyyy", { locale: es })}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4 text-sm">
+                  {/* Grid de detalles principales */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    {/* Tarjeta de Ruta */}
+                    <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Ruta & Logística</span>
+                      <div className="text-zinc-200 text-base font-bold flex items-center gap-2">
+                        <span>{selectedServicio.ruta_origen}</span>
+                        <span className="text-blue-500 font-normal">➔</span>
+                        <span>{selectedServicio.ruta_destino}</span>
+                      </div>
+                      {selectedServicio.hora && (
+                        <p className="text-xs text-zinc-400 mt-1">
+                          <strong className="text-zinc-500">Hora:</strong> {selectedServicio.hora.slice(0, 5)}
+                        </p>
+                      )}
+                      <p className="text-xs text-zinc-400">
+                        <strong className="text-zinc-500">Pasajeros:</strong> {selectedServicio.pax_count} Pax
+                      </p>
+                    </div>
+
+                    {/* Tarjeta de Personal y Proveedores */}
+                    <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Responsables</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colColor }} />
+                        <span className="text-zinc-200 font-bold">Colaborador:</span>
+                        <span className="text-zinc-300 font-medium">{colName}</span>
+                      </div>
+                      {provName && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Briefcase className="h-3.5 w-3.5 text-zinc-500" />
+                          <span className="text-zinc-200 font-bold">Proveedor:</span>
+                          <span className="text-zinc-300 font-medium">{provName}</span>
+                        </div>
+                      )}
+                      {selectedServicio.logistica_transporte && (
+                        <p className="text-xs text-zinc-400 mt-1">
+                          <strong className="text-zinc-500">Transporte:</strong> {selectedServicio.logistica_transporte}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fila de Finanzas y Notas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Finanzas</span>
+                      <p className="text-xl font-mono font-bold text-emerald-400">
+                        Q {Number(selectedServicio.monto_servicio).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-zinc-400">
+                        <strong className="text-zinc-500">Estado de Pago:</strong> {selectedServicio.estado_pago}
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 space-y-1.5">
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block">Contacto Cliente</span>
+                      <p className="text-zinc-200 font-mono text-xs mt-1">
+                        {selectedServicio.cliente_telefono || 'Sin registrar'}
+                      </p>
+                      <p className="text-xs text-zinc-500">Usado para enviar notificaciones directas.</p>
+                    </div>
+                  </div>
+
+                  {/* Notas */}
+                  {selectedServicio.notas_adicionales && (
+                    <div className="p-3.5 bg-zinc-950/40 rounded-xl border border-zinc-800/60">
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block mb-1">Notas / Instrucciones Especiales</span>
+                      <p className="text-xs text-zinc-300 whitespace-pre-wrap italic">
+                        {selectedServicio.notas_adicionales}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Previsualización del Comprobante de Pago */}
+                  {selectedServicio.comprobante_url && (
+                    <div className="p-3.5 bg-zinc-950/60 rounded-xl border border-zinc-800/80 flex flex-col items-center">
+                      <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block self-start mb-2">Comprobante de Pago</span>
+                      <a href={selectedServicio.comprobante_url} target="_blank" rel="noopener noreferrer" className="relative group overflow-hidden rounded-lg">
+                        <img
+                          src={selectedServicio.comprobante_url}
+                          alt="Comprobante de Pago"
+                          className="max-h-60 max-w-full rounded-lg object-contain border border-zinc-800 transition-all group-hover:scale-[1.02] shadow-md"
+                        />
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="gap-2 border-t border-zinc-800 pt-3 flex flex-wrap items-center justify-between">
+                  <div className="flex gap-1.5">
+                    {/* Botones de acción rápida para WhatsApp y Teléfono */}
+                    {colPhone && (
+                      <a
+                        href={`tel:${colPhone}`}
+                        className="h-9 px-3 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors flex items-center justify-center gap-1.5 text-xs font-semibold"
+                      >
+                        <Phone className="h-3.5 w-3.5" /> Llamar Colab.
+                      </a>
+                    )}
+                    {provPhone && (
+                      <a
+                        href={`tel:${provPhone}`}
+                        className="h-9 px-3 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center justify-center gap-1.5 text-xs font-semibold"
+                      >
+                        <Phone className="h-3.5 w-3.5" /> Llamar Prov.
+                      </a>
+                    )}
+                    <a
+                      href={wpUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-9 px-4 rounded-lg bg-emerald-950/30 hover:bg-emerald-950/50 border border-emerald-900/80 text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5 text-xs font-semibold"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> Notificar WhatsApp
+                    </a>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsDetailDialogOpen(false)}
+                      className="bg-zinc-950 border-zinc-800 text-zinc-400 h-9 text-xs"
+                    >
+                      Cerrar
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleTransitionToEdit}
+                      className="bg-blue-600 hover:bg-blue-500 text-zinc-50 font-semibold px-4 h-9 text-xs gap-1"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* 1. DIÁLOGO: CREAR / EDITAR SERVICIO */}
       <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
