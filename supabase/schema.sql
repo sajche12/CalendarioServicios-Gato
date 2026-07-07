@@ -86,3 +86,11 @@ create table if not exists public.suscripciones_push (
   auth text not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Crear índices en llaves foráneas para optimizar JOINs y borrados en cascada
+create index if not exists idx_servicios_colaborador on public.servicios_diarios (colaborador_id);
+create index if not exists idx_servicios_proveedor on public.servicios_diarios (proveedor_id);
+
+-- Crear índice en la columna de fecha para optimizar el calendario y cron reminders
+create index if not exists idx_servicios_fecha on public.servicios_diarios (fecha);
+
