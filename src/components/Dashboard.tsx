@@ -1625,7 +1625,7 @@ export default function Dashboard({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveService} className="space-y-4 py-2">
+          <form id="service-form" onSubmit={handleSaveService} className="space-y-4 py-2">
             
             {/* Precarga de plantilla (Solo para nuevos registros) */}
             {!selectedServicio && (
@@ -1984,7 +1984,9 @@ export default function Dashboard({
               )}
             </div>
 
-            <DialogFooter className="gap-2 px-4 pb-4 pt-3 border-t border-zinc-850 flex items-center justify-between">
+            </form>
+
+            <DialogFooter className="gap-2 border-t border-zinc-850 flex flex-row items-center justify-between">
               {selectedServicio ? (
                 <Button
                   type="button"
@@ -2010,13 +2012,16 @@ export default function Dashboard({
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={loadingAction || uploadingImage} className="bg-blue-600 hover:bg-blue-500 text-zinc-50 font-semibold px-6">
+                <Button
+                  type="submit"
+                  form="service-form"
+                  disabled={loadingAction || uploadingImage}
+                  className="bg-blue-600 hover:bg-blue-500 text-zinc-50 font-semibold px-6"
+                >
                   {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Itinerario'}
                 </Button>
               </div>
             </DialogFooter>
-
-          </form>
         </DialogContent>
       </Dialog>
 
@@ -2030,7 +2035,7 @@ export default function Dashboard({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveColaborador} className="space-y-4">
+          <form id="colab-form" onSubmit={handleSaveColaborador} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="colab_nombre" className="text-xs">Nombre Completo*</Label>
               <Input
@@ -2081,7 +2086,9 @@ export default function Dashboard({
               <Label htmlFor="colab_activo" className="text-xs text-zinc-300">Colaborador Activo (Disponible)</Label>
             </div>
 
-            <DialogFooter className="gap-2 px-4 pb-4 pt-2 flex items-center justify-between">
+            </form>
+
+            <DialogFooter className="gap-2 flex flex-row items-center justify-between">
               {selectedColab ? (
                 <Button
                   type="button"
@@ -2099,12 +2106,11 @@ export default function Dashboard({
                 <Button type="button" variant="outline" onClick={() => setIsColabDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
+                <Button type="submit" form="colab-form" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
                   {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Colaborador'}
                 </Button>
               </div>
             </DialogFooter>
-          </form>
         </DialogContent>
       </Dialog>
 
@@ -2118,7 +2124,7 @@ export default function Dashboard({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveProveedor} className="space-y-4">
+          <form id="prov-form" onSubmit={handleSaveProveedor} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="prov_nombre" className="text-xs">Nombre del Proveedor*</Label>
               <Input
@@ -2157,7 +2163,9 @@ export default function Dashboard({
               />
             </div>
 
-            <DialogFooter className="gap-2 px-4 pb-4 pt-2 flex items-center justify-between">
+            </form>
+
+            <DialogFooter className="gap-2 flex flex-row items-center justify-between">
               {selectedProv ? (
                 <Button
                   type="button"
@@ -2175,12 +2183,11 @@ export default function Dashboard({
                 <Button type="button" variant="outline" onClick={() => setIsProvDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
+                <Button type="submit" form="prov-form" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
                   {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Proveedor'}
                 </Button>
               </div>
             </DialogFooter>
-          </form>
         </DialogContent>
       </Dialog>
 
@@ -2194,7 +2201,7 @@ export default function Dashboard({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSavePlantilla} className="space-y-4">
+          <form id="plantilla-form" onSubmit={handleSavePlantilla} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="plt_titulo" className="text-xs">Título de la Plantilla*</Label>
               <Input
@@ -2271,15 +2278,16 @@ export default function Dashboard({
               />
             </div>
 
-            <DialogFooter className="gap-2 px-4 pb-4 pt-2">
+            </form>
+
+            <DialogFooter className="gap-2 flex flex-row items-center justify-end">
               <Button type="button" variant="outline" onClick={() => setIsPlantillaDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
+              <Button type="submit" form="plantilla-form" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
                 {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Plantilla'}
               </Button>
             </DialogFooter>
-          </form>
         </DialogContent>
       </Dialog>
 
