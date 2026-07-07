@@ -1984,7 +1984,7 @@ export default function Dashboard({
               )}
             </div>
 
-            <DialogFooter className="gap-2 pt-3 border-t border-zinc-850 flex items-center justify-between">
+            <DialogFooter className="gap-2 px-4 pb-4 pt-3 border-t border-zinc-850 flex items-center justify-between">
               {selectedServicio ? (
                 <Button
                   type="button"
@@ -2081,7 +2081,7 @@ export default function Dashboard({
               <Label htmlFor="colab_activo" className="text-xs text-zinc-300">Colaborador Activo (Disponible)</Label>
             </div>
 
-            <DialogFooter className="gap-2 pt-2 flex items-center justify-between">
+            <DialogFooter className="gap-2 px-4 pb-4 pt-2 flex items-center justify-between">
               {selectedColab ? (
                 <Button
                   type="button"
@@ -2157,7 +2157,7 @@ export default function Dashboard({
               />
             </div>
 
-            <DialogFooter className="gap-2 pt-2 flex items-center justify-between">
+            <DialogFooter className="gap-2 px-4 pb-4 pt-2 flex items-center justify-between">
               {selectedProv ? (
                 <Button
                   type="button"
@@ -2271,7 +2271,7 @@ export default function Dashboard({
               />
             </div>
 
-            <DialogFooter className="gap-2 pt-2">
+            <DialogFooter className="gap-2 px-4 pb-4 pt-2">
               <Button type="button" variant="outline" onClick={() => setIsPlantillaDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
                 Cancelar
               </Button>
