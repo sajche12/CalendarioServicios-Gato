@@ -182,3 +182,30 @@ export async function deleteServicio(id: string): Promise<{ success: boolean; er
   revalidatePath('/');
   return { success: true };
 }
+
+export async function deleteColaborador(id: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from('colaboradores').delete().eq('id', id);
+
+  if (error) {
+    console.error('Error deleting colaborador:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/');
+  return { success: true };
+}
+
+export async function deleteProveedor(id: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from('proveedores').delete().eq('id', id);
+
+  if (error) {
+    console.error('Error deleting proveedor:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/');
+  return { success: true };
+}
+
