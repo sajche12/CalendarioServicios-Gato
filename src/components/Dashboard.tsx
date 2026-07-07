@@ -15,7 +15,9 @@ import {
   deleteServicio,
   saveColaborador,
   saveProveedor,
-  savePlantilla
+  savePlantilla,
+  deleteColaborador,
+  deleteProveedor
 } from '@/app/actions/db';
 import { Colaborador, Proveedor, PlantillaItinerario, ServicioDiario, EstadoPago, EstadoRuta } from '@/types';
 import { saveSubscription, deleteSubscription, sendTestNotification } from '@/app/actions/push';
@@ -658,6 +660,48 @@ export default function Dashboard({
     setLoadingAction(false);
     if (res.success) setIsProvDialogOpen(false);
     else alert(`Error: ${res.error}`);
+  };
+
+  const handleDeleteColab = async () => {
+    if (!selectedColab) return;
+    if (!confirm(`¿Estás seguro de eliminar al colaborador "${selectedColab.nombre}"?`)) return;
+
+    setLoadingAction(true);
+    try {
+      const res = await deleteColaborador(selectedColab.id);
+      if (res.success) {
+        setIsColabDialogOpen(false);
+        const data = await getColaboradores();
+        setColaboradores(data);
+      } else {
+        alert(`Error al eliminar: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleDeleteProv = async () => {
+    if (!selectedProv) return;
+    if (!confirm(`¿Estás seguro de eliminar al proveedor "${selectedProv.nombre}"?`)) return;
+
+    setLoadingAction(true);
+    try {
+      const res = await deleteProveedor(selectedProv.id);
+      if (res.success) {
+        setIsProvDialogOpen(false);
+        const data = await getProveedores();
+        setProveedores(data);
+      } else {
+        alert(`Error al eliminar: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoadingAction(false);
+    }
   };
 
   const handleOpenPlantillaDialog = (plantilla?: PlantillaItinerario) => {
@@ -2037,13 +2081,28 @@ export default function Dashboard({
               <Label htmlFor="colab_activo" className="text-xs text-zinc-300">Colaborador Activo (Disponible)</Label>
             </div>
 
-            <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsColabDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
-                {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Colaborador'}
-              </Button>
+            <DialogFooter className="gap-2 pt-2 flex items-center justify-between w-full">
+              {selectedColab ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleDeleteColab}
+                  disabled={loadingAction}
+                  className="bg-red-950/30 text-red-400 border border-red-900/50 hover:bg-red-900/40 hover:text-red-300 gap-1.5"
+                >
+                  <Trash2 className="h-4 w-4" /> Eliminar
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsColabDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
+                  {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Colaborador'}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -2098,13 +2157,28 @@ export default function Dashboard({
               />
             </div>
 
-            <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsProvDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
-                {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Proveedor'}
-              </Button>
+            <DialogFooter className="gap-2 pt-2 flex items-center justify-between w-full">
+              {selectedProv ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleDeleteProv}
+                  disabled={loadingAction}
+                  className="bg-red-950/30 text-red-400 border border-red-900/50 hover:bg-red-900/40 hover:text-red-300 gap-1.5"
+                >
+                  <Trash2 className="h-4 w-4" /> Eliminar
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsProvDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
+                  {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Proveedor'}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
