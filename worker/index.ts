@@ -1,49 +1,47 @@
 // Custom service worker script compiled by next-pwa
-const sw = self as any;
 
-sw.addEventListener("push", (event: any) => {
+self.addEventListener("push", (event: any) => {
   if (!event.data) return;
 
+  const payloadText = event.data.text();
+  let title = "Recordatorio TourFlow";
+  let body = payloadText;
+  let url = "/";
+
   try {
-    const data = event.data.json();
-    const options: any = {
-      body: data.body || "Tienes un traslado programado.",
-      icon: "/icon-192x192.png",
-      badge: "/icon-192x192.png",
-      vibrate: [100, 50, 100],
-      data: {
-        url: data.url || "/"
-      }
-    };
-    event.waitUntil(
-      sw.registration.showNotification(data.title || "Recordatorio TourFlow", options)
-    );
+    const data = JSON.parse(payloadText);
+    if (data.title) title = data.title;
+    if (data.body) body = data.body;
+    if (data.url) url = data.url;
   } catch (err) {
-    const text = event.data.text();
-    event.waitUntil(
-      sw.registration.showNotification("Recordatorio TourFlow", {
-        body: text,
-        icon: "/icon-192x192.png",
-        badge: "/icon-192x192.png",
-        vibrate: [100, 50, 100],
-        data: { url: "/" }
-      } as any)
-    );
+    // Si no es JSON, se usa el texto crudo como cuerpo
   }
+
+  const options: any = {
+    body: body,
+    icon: "/icon-192x192.png",
+    badge: "/icon-192x192.png",
+    vibrate: [100, 50, 100],
+    data: { url }
+  };
+
+  event.waitUntil(
+    (self as any).registration.showNotification(title, options)
+  );
 });
 
-sw.addEventListener("notificationclick", (event: any) => {
+self.addEventListener("notificationclick", (event: any) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || "/";
   event.waitUntil(
-    sw.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList: any[]) => {
+    (self as any).clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList: any[]) => {
       for (const client of clientList) {
         if (client.url.includes(targetUrl) && "focus" in client) {
           return client.focus();
         }
       }
-      if (sw.clients.openWindow) {
-        return sw.clients.openWindow(targetUrl);
+      if ((self as any).clients.openWindow) {
+        return (self as any).clients.openWindow(targetUrl);
       }
     })
   );
