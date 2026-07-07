@@ -12,13 +12,13 @@ import {
   getPlantillas,
   getServicios,
   saveServicio,
-  deleteServicio,
-  saveColaborador,
-  saveProveedor,
-  savePlantilla
+  deleteServicio
 } from '@/app/actions/db';
 import { Colaborador, Proveedor, PlantillaItinerario, ServicioDiario, EstadoPago, EstadoRuta } from '@/types';
 import { saveSubscription, deleteSubscription, sendTestNotification } from '@/app/actions/push';
+import ColaboradorDialog from './dialogs/ColaboradorDialog';
+import ProveedorDialog from './dialogs/ProveedorDialog';
+import PlantillaDialog from './dialogs/PlantillaDialog';
 import {
   Card,
   CardHeader,
@@ -155,25 +155,12 @@ export default function Dashboard({
   // --- Catalog Dialog States ---
   const [isColabDialogOpen, setIsColabDialogOpen] = useState(false);
   const [selectedColab, setSelectedColab] = useState<Colaborador | null>(null);
-  const [colabNombre, setColabNombre] = useState('');
-  const [colabTelefono, setColabTelefono] = useState('');
-  const [colabColor, setColabColor] = useState('#3b82f6');
-  const [colabActivo, setColabActivo] = useState(true);
 
   const [isProvDialogOpen, setIsProvDialogOpen] = useState(false);
   const [selectedProv, setSelectedProv] = useState<Proveedor | null>(null);
-  const [provNombre, setProvNombre] = useState('');
-  const [provServicio, setProvServicio] = useState('');
-  const [provTelefono, setProvTelefono] = useState('');
 
   const [isPlantillaDialogOpen, setIsPlantillaDialogOpen] = useState(false);
   const [selectedPlantilla, setSelectedPlantilla] = useState<PlantillaItinerario | null>(null);
-  const [pltTitulo, setPltTitulo] = useState('');
-  const [pltOrigen, setPltOrigen] = useState('');
-  const [pltDestino, setPltDestino] = useState('');
-  const [pltPuntos, setPltPuntos] = useState(''); // Comma separated
-  const [pltHora, setPltHora] = useState('');
-  const [pltNotas, setPltNotas] = useState('');
 
   // --- Realtime Sync ---
   useEffect(() => {
@@ -593,116 +580,20 @@ export default function Dashboard({
 
 
   // --- Handlers: Catálogos ---
+  // --- Handlers: Catálogos ---
   const handleOpenColabDialog = (colab?: Colaborador) => {
-    if (colab) {
-      setSelectedColab(colab);
-      setColabNombre(colab.nombre);
-      setColabTelefono(colab.telefono || '');
-      setColabColor(colab.color || '#3b82f6');
-      setColabActivo(colab.activo);
-    } else {
-      setSelectedColab(null);
-      setColabNombre('');
-      setColabTelefono('');
-      setColabColor('#3b82f6');
-      setColabActivo(true);
-    }
+    setSelectedColab(colab || null);
     setIsColabDialogOpen(true);
   };
 
-  const handleSaveColaborador = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!colabNombre.trim()) return;
-
-    setLoadingAction(true);
-    const res = await saveColaborador({
-      id: selectedColab?.id,
-      nombre: colabNombre,
-      telefono: colabTelefono || null,
-      color: colabColor || null,
-      activo: colabActivo
-    });
-
-    setLoadingAction(false);
-    if (res.success) setIsColabDialogOpen(false);
-    else alert(`Error: ${res.error}`);
-  };
-
   const handleOpenProvDialog = (prov?: Proveedor) => {
-    if (prov) {
-      setSelectedProv(prov);
-      setProvNombre(prov.nombre);
-      setProvServicio(prov.servicio || '');
-      setProvTelefono(prov.telefono || '');
-    } else {
-      setSelectedProv(null);
-      setProvNombre('');
-      setProvServicio('');
-      setProvTelefono('');
-    }
+    setSelectedProv(prov || null);
     setIsProvDialogOpen(true);
   };
 
-  const handleSaveProveedor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!provNombre.trim()) return;
-
-    setLoadingAction(true);
-    const res = await saveProveedor({
-      id: selectedProv?.id,
-      nombre: provNombre,
-      servicio: provServicio || null,
-      telefono: provTelefono || null
-    });
-
-    setLoadingAction(false);
-    if (res.success) setIsProvDialogOpen(false);
-    else alert(`Error: ${res.error}`);
-  };
-
   const handleOpenPlantillaDialog = (plantilla?: PlantillaItinerario) => {
-    if (plantilla) {
-      setSelectedPlantilla(plantilla);
-      setPltTitulo(plantilla.titulo);
-      setPltOrigen(plantilla.ruta_origen);
-      setPltDestino(plantilla.ruta_destino);
-      setPltPuntos(plantilla.puntos_intermedios ? plantilla.puntos_intermedios.join(', ') : '');
-      setPltHora(plantilla.hora_sugerida ? plantilla.hora_sugerida.slice(0, 5) : '08:00');
-      setPltNotas(plantilla.notas_predeterminadas || '');
-    } else {
-      setSelectedPlantilla(null);
-      setPltTitulo('');
-      setPltOrigen('');
-      setPltDestino('');
-      setPltPuntos('');
-      setPltHora('08:00');
-      setPltNotas('');
-    }
+    setSelectedPlantilla(plantilla || null);
     setIsPlantillaDialogOpen(true);
-  };
-
-  const handleSavePlantilla = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pltTitulo.trim()) return;
-
-    setLoadingAction(true);
-    const arrPuntos = pltPuntos
-      ? pltPuntos.split(',').map(p => p.trim()).filter(Boolean)
-      : null;
-
-    const res = await savePlantilla({
-      id: selectedPlantilla?.id,
-      titulo: pltTitulo,
-      ruta_origen: pltOrigen,
-      ruta_destino: pltDestino,
-      puntos_intermedios: arrPuntos,
-      hora_sugerida: pltHora ? `${pltHora}:00` : null,
-      notas_predeterminadas: pltNotas || null
-    });
-
-    setLoadingAction(false);
-    if (res.success) setIsPlantillaDialogOpen(false);
-    else alert(`Error: ${res.error}`);
   };
 
   // --- Filtros a Nivel Lógico ---
@@ -801,6 +692,7 @@ export default function Dashboard({
                     disabled={pushLoading}
                     onClick={handleSendTestPush}
                     className="border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-all gap-1.5 h-8 text-[11px] font-semibold bg-zinc-950/60"
+                    aria-label="Probar notificación push en celular"
                   >
                     <BellRing className="h-3.5 w-3.5 text-blue-400" />
                     <span className="hidden md:inline">Probar Notificación</span>
@@ -811,6 +703,7 @@ export default function Dashboard({
                     disabled={pushLoading}
                     onClick={handleUnsubscribePush}
                     className="text-zinc-400 hover:text-red-400 transition-all gap-1.5 h-8 text-[11px] font-semibold"
+                    aria-label="Desactivar alertas celular"
                   >
                     <BellOff className="h-3.5 w-3.5 text-red-500" />
                     <span className="hidden md:inline">Desactivar Alertas</span>
@@ -823,6 +716,7 @@ export default function Dashboard({
                   disabled={pushLoading}
                   onClick={handleSubscribePush}
                   className="border-blue-900/60 bg-blue-950/30 text-blue-400 hover:text-blue-300 hover:bg-blue-950/50 transition-all gap-1.5 h-8 text-[11px] font-semibold"
+                  aria-label="Activar alertas celular"
                 >
                   <Bell className="h-3.5 w-3.5" />
                   <span>Activar Alertas Celular</span>
@@ -839,6 +733,7 @@ export default function Dashboard({
               router.refresh();
             }}
             className="text-zinc-400 hover:text-red-400 hover:bg-red-950/20 transition-all gap-1.5 h-8"
+            aria-label="Cerrar sesión"
           >
             <LogOut className="h-4 w-4" />
             <span className="hidden sm:inline">Cerrar Sesión</span>
@@ -864,7 +759,7 @@ export default function Dashboard({
           <div className="hidden md:flex items-center gap-3">
             {/* Filtro Colaborador */}
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs text-zinc-500">Colaborador:</Label>
+              <Label className="text-xs text-zinc-400">Colaborador:</Label>
               <Select value={filterColaborador} onValueChange={(val) => setFilterColaborador(val || 'all')}>
                 <SelectTrigger className="w-[140px] h-8 bg-zinc-950 border-zinc-800 text-xs">
                   <SelectValue placeholder="Todos">
@@ -882,7 +777,7 @@ export default function Dashboard({
 
             {/* Filtro Pago */}
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs text-zinc-500">Pago:</Label>
+              <Label className="text-xs text-zinc-400">Pago:</Label>
               <Select value={filterPago} onValueChange={(val) => setFilterPago(val || 'all')}>
                 <SelectTrigger className="w-[130px] h-8 bg-zinc-950 border-zinc-800 text-xs">
                   <SelectValue placeholder="Todos">
@@ -1581,7 +1476,7 @@ export default function Dashboard({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveService} className="space-y-4 py-2">
+          <form id="service-form" onSubmit={handleSaveService} className="space-y-4 py-2">
             
             {/* Precarga de plantilla (Solo para nuevos registros) */}
             {!selectedServicio && (
@@ -1940,7 +1835,9 @@ export default function Dashboard({
               )}
             </div>
 
-            <DialogFooter className="gap-2 pt-3 border-t border-zinc-850 flex items-center justify-between">
+            </form>
+
+            <DialogFooter className="gap-2 border-t border-zinc-850 flex flex-row items-center justify-between">
               {selectedServicio ? (
                 <Button
                   type="button"
@@ -1966,248 +1863,42 @@ export default function Dashboard({
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={loadingAction || uploadingImage} className="bg-blue-600 hover:bg-blue-500 text-zinc-50 font-semibold px-6">
+                <Button
+                  type="submit"
+                  form="service-form"
+                  disabled={loadingAction || uploadingImage}
+                  className="bg-blue-600 hover:bg-blue-500 text-zinc-50 font-semibold px-6"
+                >
                   {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Itinerario'}
                 </Button>
               </div>
             </DialogFooter>
-
-          </form>
         </DialogContent>
       </Dialog>
 
       {/* 2. DIÁLOGO: CREAR / EDITAR COLABORADOR */}
-      <Dialog open={isColabDialogOpen} onOpenChange={setIsColabDialogOpen}>
-        <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
-          <DialogHeader>
-            <DialogTitle>{selectedColab ? 'Editar Colaborador' : 'Agregar Nuevo Colaborador'}</DialogTitle>
-            <DialogDescription>
-              Registra los encargados de guiar o conducir las rutas turísticas.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveColaborador} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="colab_nombre" className="text-xs">Nombre Completo*</Label>
-              <Input
-                id="colab_nombre"
-                type="text"
-                required
-                placeholder="Ej: Alex"
-                value={colabNombre}
-                onChange={(e) => setColabNombre(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs block">Teléfono</Label>
-              <PhoneInput
-                defaultCountry="gt"
-                value={colabTelefono}
-                onChange={(phone) => setColabTelefono(phone)}
-                inputClassName="w-full flex-1 bg-zinc-950 border-zinc-800 h-9 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                countrySelectorStyleProps={{
-                  buttonClassName: "bg-zinc-950 border border-zinc-800 h-9 rounded-l-lg px-2 flex items-center justify-center hover:bg-zinc-900 transition-colors"
-                }}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Color Asignado en Calendario</Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  type="color"
-                  value={colabColor}
-                  onChange={(e) => setColabColor(e.target.value)}
-                  className="w-12 h-10 p-0.5 border-zinc-800 bg-zinc-950 rounded-lg cursor-pointer"
-                />
-                <span className="text-xs font-mono text-zinc-400 uppercase">{colabColor}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 py-1">
-              <input
-                id="colab_activo"
-                type="checkbox"
-                checked={colabActivo}
-                onChange={(e) => setColabActivo(e.target.checked)}
-                className="h-4 w-4 bg-zinc-950 border-zinc-800 rounded text-blue-500 focus:ring-blue-500/30"
-              />
-              <Label htmlFor="colab_activo" className="text-xs text-zinc-300">Colaborador Activo (Disponible)</Label>
-            </div>
-
-            <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsColabDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
-                {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Colaborador'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ColaboradorDialog
+        open={isColabDialogOpen}
+        onOpenChange={setIsColabDialogOpen}
+        colaborador={selectedColab}
+        onSuccess={setColaboradores}
+      />
 
       {/* 3. DIÁLOGO: CREAR / EDITAR PROVEEDOR */}
-      <Dialog open={isProvDialogOpen} onOpenChange={setIsProvDialogOpen}>
-        <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
-          <DialogHeader>
-            <DialogTitle>{selectedProv ? 'Editar Proveedor' : 'Agregar Nuevo Proveedor'}</DialogTitle>
-            <DialogDescription>
-              Registra servicios de transportación externos de confianza.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveProveedor} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="prov_nombre" className="text-xs">Nombre del Proveedor*</Label>
-              <Input
-                id="prov_nombre"
-                type="text"
-                required
-                placeholder="Ej: William 4x4"
-                value={provNombre}
-                onChange={(e) => setProvNombre(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="prov_servicio" className="text-xs">Tipo de Servicio prestado</Label>
-              <Input
-                id="prov_servicio"
-                type="text"
-                placeholder="Ej: Lancha, Pick-up 4x4, Autobús"
-                value={provServicio}
-                onChange={(e) => setProvServicio(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs block">Teléfono de contacto</Label>
-              <PhoneInput
-                defaultCountry="gt"
-                value={provTelefono}
-                onChange={(phone) => setProvTelefono(phone)}
-                inputClassName="w-full flex-1 bg-zinc-950 border-zinc-800 h-9 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                countrySelectorStyleProps={{
-                  buttonClassName: "bg-zinc-950 border border-zinc-800 h-9 rounded-l-lg px-2 flex items-center justify-center hover:bg-zinc-900 transition-colors"
-                }}
-              />
-            </div>
-
-            <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsProvDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
-                {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Proveedor'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ProveedorDialog
+        open={isProvDialogOpen}
+        onOpenChange={setIsProvDialogOpen}
+        proveedor={selectedProv}
+        onSuccess={setProveedores}
+      />
 
       {/* 4. DIÁLOGO: CREAR / EDITAR PLANTILLA */}
-      <Dialog open={isPlantillaDialogOpen} onOpenChange={setIsPlantillaDialogOpen}>
-        <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
-          <DialogHeader>
-            <DialogTitle>{selectedPlantilla ? 'Editar Plantilla' : 'Agregar Nueva Plantilla'}</DialogTitle>
-            <DialogDescription>
-              Define plantillas de itinerario comunes para agilizar la asignación diaria.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSavePlantilla} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="plt_titulo" className="text-xs">Título de la Plantilla*</Label>
-              <Input
-                id="plt_titulo"
-                type="text"
-                required
-                placeholder="Ej: Tour Semuc Champey"
-                value={pltTitulo}
-                onChange={(e) => setPltTitulo(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="plt_origen" className="text-xs">Ruta Origen*</Label>
-                <Input
-                  id="plt_origen"
-                  type="text"
-                  required
-                  placeholder="Ej: Cobán"
-                  value={pltOrigen}
-                  onChange={(e) => setPltOrigen(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="plt_destino" className="text-xs">Ruta Destino*</Label>
-                <Input
-                  id="plt_destino"
-                  type="text"
-                  required
-                  placeholder="Ej: Semuc"
-                  value={pltDestino}
-                  onChange={(e) => setPltDestino(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="plt_puntos" className="text-xs">Puntos Intermedios (Separados por coma)</Label>
-              <Input
-                id="plt_puntos"
-                type="text"
-                placeholder="Ej: Cruce Lanquin, Gasolinera, Puente"
-                value={pltPuntos}
-                onChange={(e) => setPltPuntos(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="plt_hora" className="text-xs">Hora Sugerida</Label>
-              <Input
-                id="plt_hora"
-                type="time"
-                value={pltHora}
-                onChange={(e) => setPltHora(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="plt_notas" className="text-xs">Notas predeterminadas</Label>
-              <Textarea
-                id="plt_notas"
-                placeholder="Ej: Coordinar lancha o 4x4..."
-                rows={2}
-                value={pltNotas}
-                onChange={(e) => setPltNotas(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-zinc-100"
-              />
-            </div>
-
-            <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsPlantillaDialogOpen(false)} className="bg-zinc-950 border-zinc-800">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loadingAction} className="bg-blue-600 hover:bg-blue-500 text-zinc-50">
-                {loadingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Plantilla'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <PlantillaDialog
+        open={isPlantillaDialogOpen}
+        onOpenChange={setIsPlantillaDialogOpen}
+        plantilla={selectedPlantilla}
+        onSuccess={setPlantillas}
+      />
 
     </div>
   );
