@@ -142,7 +142,7 @@ export default function ColaboradorDialog({ open, onOpenChange, colaborador, onS
           </div>
         </form>
 
-        <DialogFooter className="gap-2 flex flex-row items-center justify-between">
+        <DialogFooter className="gap-2 flex flex-row items-center justify-between -mx-4 -mb-4 px-4 pb-4 border-t border-zinc-800 mt-2 pt-4">
           {colaborador ? (
             <Button
               type="button"
