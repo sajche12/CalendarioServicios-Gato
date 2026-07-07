@@ -2081,7 +2081,7 @@ export default function Dashboard({
               <Label htmlFor="colab_activo" className="text-xs text-zinc-300">Colaborador Activo (Disponible)</Label>
             </div>
 
-            <DialogFooter className="gap-2 pt-2 flex items-center justify-between w-full">
+            <DialogFooter className="gap-2 pt-2 flex items-center justify-between">
               {selectedColab ? (
                 <Button
                   type="button"
@@ -2157,7 +2157,7 @@ export default function Dashboard({
               />
             </div>
 
-            <DialogFooter className="gap-2 pt-2 flex items-center justify-between w-full">
+            <DialogFooter className="gap-2 pt-2 flex items-center justify-between">
               {selectedProv ? (
                 <Button
                   type="button"
