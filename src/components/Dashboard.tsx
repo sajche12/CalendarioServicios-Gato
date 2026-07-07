@@ -845,6 +845,7 @@ export default function Dashboard({
                     disabled={pushLoading}
                     onClick={handleSendTestPush}
                     className="border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-all gap-1.5 h-8 text-[11px] font-semibold bg-zinc-950/60"
+                    aria-label="Probar notificación push en celular"
                   >
                     <BellRing className="h-3.5 w-3.5 text-blue-400" />
                     <span className="hidden md:inline">Probar Notificación</span>
@@ -855,6 +856,7 @@ export default function Dashboard({
                     disabled={pushLoading}
                     onClick={handleUnsubscribePush}
                     className="text-zinc-400 hover:text-red-400 transition-all gap-1.5 h-8 text-[11px] font-semibold"
+                    aria-label="Desactivar alertas celular"
                   >
                     <BellOff className="h-3.5 w-3.5 text-red-500" />
                     <span className="hidden md:inline">Desactivar Alertas</span>
@@ -867,6 +869,7 @@ export default function Dashboard({
                   disabled={pushLoading}
                   onClick={handleSubscribePush}
                   className="border-blue-900/60 bg-blue-950/30 text-blue-400 hover:text-blue-300 hover:bg-blue-950/50 transition-all gap-1.5 h-8 text-[11px] font-semibold"
+                  aria-label="Activar alertas celular"
                 >
                   <Bell className="h-3.5 w-3.5" />
                   <span>Activar Alertas Celular</span>
@@ -883,6 +886,7 @@ export default function Dashboard({
               router.refresh();
             }}
             className="text-zinc-400 hover:text-red-400 hover:bg-red-950/20 transition-all gap-1.5 h-8"
+            aria-label="Cerrar sesión"
           >
             <LogOut className="h-4 w-4" />
             <span className="hidden sm:inline">Cerrar Sesión</span>
@@ -908,7 +912,7 @@ export default function Dashboard({
           <div className="hidden md:flex items-center gap-3">
             {/* Filtro Colaborador */}
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs text-zinc-500">Colaborador:</Label>
+              <Label className="text-xs text-zinc-400">Colaborador:</Label>
               <Select value={filterColaborador} onValueChange={(val) => setFilterColaborador(val || 'all')}>
                 <SelectTrigger className="w-[140px] h-8 bg-zinc-950 border-zinc-800 text-xs">
                   <SelectValue placeholder="Todos">
@@ -926,7 +930,7 @@ export default function Dashboard({
 
             {/* Filtro Pago */}
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs text-zinc-500">Pago:</Label>
+              <Label className="text-xs text-zinc-400">Pago:</Label>
               <Select value={filterPago} onValueChange={(val) => setFilterPago(val || 'all')}>
                 <SelectTrigger className="w-[130px] h-8 bg-zinc-950 border-zinc-800 text-xs">
                   <SelectValue placeholder="Todos">
