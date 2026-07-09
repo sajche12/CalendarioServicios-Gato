@@ -148,7 +148,7 @@ export default function PlantillaDialog({ open, onOpenChange, plantilla, onSucce
           </div>
         </form>
 
-        <DialogFooter className="gap-2 pt-2">
+        <DialogFooter className="gap-2 -mx-4 -mb-4 px-4 pb-4 border-t border-zinc-800 mt-2 pt-4 flex flex-row items-center justify-end">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="bg-zinc-950 border-zinc-800" disabled={loading}>
             Cancelar
           </Button>

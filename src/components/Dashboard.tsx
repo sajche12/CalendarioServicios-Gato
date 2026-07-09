@@ -97,7 +97,103 @@ interface DashboardProps {
   initialServicios: ServicioDiario[];
 }
 
+// ── Mini-componente: tarjeta de colaborador con lápiz + papelera ──────────────
+function ColaboradorCard({
+  colab, onEdit, onDeleted,
+}: { colab: Colaborador; onEdit: () => void; onDeleted: (updated: Colaborador[]) => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirming) { setConfirming(true); return; }
+    setLoading(true);
+    const { deleteColaborador, getColaboradores } = await import('@/app/actions/db');
+    const res = await deleteColaborador(colab.id);
+    if (res.success) {
+      const updated = await getColaboradores();
+      onDeleted(updated);
+    }
+    setLoading(false);
+    setConfirming(false);
+  };
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
+      <div className="flex items-center gap-3">
+        <div className="w-4 h-4 rounded-full border border-zinc-800 shrink-0" style={{ backgroundColor: colab.color || '#3b82f6' }} />
+        <div>
+          <h4 className="font-bold text-zinc-100 flex items-center gap-1.5">
+            {colab.nombre}
+            {!colab.activo && <Badge className="bg-zinc-800 text-zinc-500 text-[8px] h-4">Inactivo</Badge>}
+          </h4>
+          {colab.telefono && <p className="text-xs font-mono text-zinc-500">{colab.telefono}</p>}
+        </div>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <Button variant="ghost" size="icon" onClick={onEdit} title="Editar" className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
+          <Edit2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost" size="icon" disabled={loading}
+          onClick={handleDelete}
+          title={confirming ? '¿Confirmar eliminación?' : 'Eliminar'}
+          className={`h-8 w-8 transition-colors ${confirming ? 'text-red-400 bg-red-950/40 hover:bg-red-900/40' : 'text-zinc-600 hover:text-red-400'}`}
+          onBlur={() => setConfirming(false)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// ── Mini-componente: tarjeta de proveedor con lápiz + papelera ────────────────
+function ProveedorCard({
+  prov, onEdit, onDeleted,
+}: { prov: Proveedor; onEdit: () => void; onDeleted: (updated: Proveedor[]) => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirming) { setConfirming(true); return; }
+    setLoading(true);
+    const { deleteProveedor, getProveedores } = await import('@/app/actions/db');
+    const res = await deleteProveedor(prov.id);
+    if (res.success) {
+      const updated = await getProveedores();
+      onDeleted(updated);
+    }
+    setLoading(false);
+    setConfirming(false);
+  };
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
+      <div>
+        <h4 className="font-bold text-zinc-100">{prov.nombre}</h4>
+        {prov.servicio && <p className="text-xs text-blue-400">{prov.servicio}</p>}
+        {prov.telefono && <p className="text-xs font-mono text-zinc-500 mt-0.5">{prov.telefono}</p>}
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <Button variant="ghost" size="icon" onClick={onEdit} title="Editar" className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
+          <Edit2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost" size="icon" disabled={loading}
+          onClick={handleDelete}
+          title={confirming ? '¿Confirmar eliminación?' : 'Eliminar'}
+          className={`h-8 w-8 transition-colors ${confirming ? 'text-red-400 bg-red-950/40 hover:bg-red-900/40' : 'text-zinc-600 hover:text-red-400'}`}
+          onBlur={() => setConfirming(false)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export default function Dashboard({
+
   initialColaboradores,
   initialProveedores,
   initialPlantillas,
@@ -341,24 +437,25 @@ export default function Dashboard({
     }
   };
 
-  // --- Frankfurter API: Fetch tipo de cambio real ---
+  // --- Tasa de cambio: via proxy interno para evitar CORS ---
   useEffect(() => {
     const fetchTasaCambio = async () => {
       try {
-        const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=GTQ');
+        const res = await fetch('/api/tasa-cambio');
         if (res.ok) {
           const data = await res.json();
           if (data?.rates?.GTQ) {
             setSrvTasaCambio(Number(data.rates.GTQ));
-            console.log('Tasa de cambio cargada de Frankfurter:', data.rates.GTQ);
+            console.log('Tasa de cambio cargada:', data.rates.GTQ);
           }
         }
       } catch (err) {
-        console.error('Error fetching exchange rate from Frankfurter:', err);
+        console.error('Error fetching exchange rate:', err);
       }
     };
     fetchTasaCambio();
   }, []);
+
 
   // Auto-calcular estado de pago del colaborador
   useEffect(() => {
@@ -1145,21 +1242,12 @@ export default function Dashboard({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {colaboradores.map(colab => (
-                  <Card key={colab.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full border border-zinc-800" style={{ backgroundColor: colab.color || '#3b82f6' }} />
-                      <div>
-                        <h4 className="font-bold text-zinc-100 flex items-center gap-1.5">
-                          {colab.nombre}
-                          {!colab.activo && <Badge className="bg-zinc-800 text-zinc-500 text-[8px] h-4">Inactivo</Badge>}
-                        </h4>
-                        {colab.telefono && <p className="text-xs font-mono text-zinc-500">{colab.telefono}</p>}
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenColabDialog(colab)} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </Card>
+                  <ColaboradorCard
+                    key={colab.id}
+                    colab={colab}
+                    onEdit={() => handleOpenColabDialog(colab)}
+                    onDeleted={(updated) => setColaboradores(updated)}
+                  />
                 ))}
               </div>
             </TabsContent>
@@ -1178,16 +1266,12 @@ export default function Dashboard({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {proveedores.map(prov => (
-                  <Card key={prov.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
-                    <div>
-                      <h4 className="font-bold text-zinc-100">{prov.nombre}</h4>
-                      {prov.servicio && <p className="text-xs text-blue-400">{prov.servicio}</p>}
-                      {prov.telefono && <p className="text-xs font-mono text-zinc-500 mt-0.5">{prov.telefono}</p>}
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenProvDialog(prov)} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </Card>
+                  <ProveedorCard
+                    key={prov.id}
+                    prov={prov}
+                    onEdit={() => handleOpenProvDialog(prov)}
+                    onDeleted={(updated) => setProveedores(updated)}
+                  />
                 ))}
               </div>
             </TabsContent>
