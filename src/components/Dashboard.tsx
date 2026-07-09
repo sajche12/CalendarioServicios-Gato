@@ -12,7 +12,10 @@ import {
   getPlantillas,
   getServicios,
   saveServicio,
-  deleteServicio
+  deleteServicio,
+  deleteColaborador,
+  deleteProveedor,
+  deletePlantilla
 } from '@/app/actions/db';
 import { Colaborador, Proveedor, PlantillaItinerario, ServicioDiario, EstadoPago, EstadoRuta } from '@/types';
 import { saveSubscription, deleteSubscription, sendTestNotification } from '@/app/actions/push';
@@ -95,6 +98,207 @@ interface DashboardProps {
   initialProveedores: Proveedor[];
   initialPlantillas: PlantillaItinerario[];
   initialServicios: ServicioDiario[];
+}
+
+// ── Tarjeta Colaborador con Doble Confirmación de Borrado ──
+function ColaboradorCard({
+  colab,
+  onEdit,
+  onDeleted
+}: {
+  colab: Colaborador;
+  onEdit: () => void;
+  onDeleted: (updated: Colaborador[]) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await deleteColaborador(colab.id);
+      if (res.success) {
+        const fresh = await getColaboradores();
+        onDeleted(fresh);
+      } else {
+        alert(`Error al eliminar colaborador: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
+      <div className="flex items-center gap-3">
+        <div className="w-4 h-4 rounded-full border border-zinc-800 shrink-0" style={{ backgroundColor: colab.color || '#3b82f6' }} />
+        <div>
+          <h4 className="font-bold text-zinc-100 flex items-center gap-1.5">
+            {colab.nombre}
+            {!colab.activo && <Badge className="bg-zinc-800 text-zinc-500 text-[8px] h-4">Inactivo</Badge>}
+          </h4>
+          {colab.telefono && <p className="text-xs font-mono text-zinc-500">{colab.telefono}</p>}
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
+          <Edit2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={loading}
+          onClick={handleDelete}
+          className={`h-8 w-8 transition-colors ${confirming ? 'text-red-400 bg-red-950/40 hover:bg-red-900/40' : 'text-zinc-500 hover:text-red-400'}`}
+          onBlur={() => setConfirming(false)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// ── Tarjeta Proveedor con Doble Confirmación de Borrado ──
+function ProveedorCard({
+  prov,
+  onEdit,
+  onDeleted
+}: {
+  prov: Proveedor;
+  onEdit: () => void;
+  onDeleted: (updated: Proveedor[]) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await deleteProveedor(prov.id);
+      if (res.success) {
+        const fresh = await getProveedores();
+        onDeleted(fresh);
+      } else {
+        alert(`Error al eliminar proveedor: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
+      <div>
+        <h4 className="font-bold text-zinc-100">{prov.nombre}</h4>
+        {prov.servicio && <p className="text-xs text-blue-400">{prov.servicio}</p>}
+        {prov.telefono && <p className="text-xs font-mono text-zinc-500 mt-0.5">{prov.telefono}</p>}
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
+          <Edit2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={loading}
+          onClick={handleDelete}
+          className={`h-8 w-8 transition-colors ${confirming ? 'text-red-400 bg-red-950/40 hover:bg-red-900/40' : 'text-zinc-500 hover:text-red-400'}`}
+          onBlur={() => setConfirming(false)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// ── Tarjeta Plantilla con Doble Confirmación de Borrado (Basurero abajo del lápiz) ──
+function PlantillaCard({
+  plt,
+  onEdit,
+  onDeleted
+}: {
+  plt: PlantillaItinerario;
+  onEdit: () => void;
+  onDeleted: (updated: PlantillaItinerario[]) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await deletePlantilla(plt.id);
+      if (res.success) {
+        const fresh = await getPlantillas();
+        onDeleted(fresh);
+      } else {
+        alert(`Error al eliminar plantilla: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex flex-col justify-between p-4 space-y-3">
+      <div>
+        <div className="flex justify-between items-start">
+          <h4 className="font-bold text-zinc-100 text-base">{plt.titulo}</h4>
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={loading}
+              onClick={handleDelete}
+              className={`h-8 w-8 transition-colors ${confirming ? 'text-red-400 bg-red-950/40 hover:bg-red-900/40' : 'text-zinc-500 hover:text-red-400'}`}
+              onBlur={() => setConfirming(false)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-xs text-zinc-400 mt-1">
+          <strong className="text-zinc-500">Ruta:</strong> {plt.ruta_origen} ➔ {plt.ruta_destino}
+        </p>
+        {plt.puntos_intermedios && plt.puntos_intermedios.length > 0 && (
+          <p className="text-[11px] text-zinc-500 mt-1 truncate">
+            <strong className="text-zinc-600">Intermedios:</strong> {plt.puntos_intermedios.join(', ')}
+          </p>
+        )}
+        {plt.notas_predeterminadas && (
+          <p className="text-[11px] text-zinc-500 italic mt-1 line-clamp-2">
+            <strong className="text-zinc-600 not-italic">Notas:</strong> {plt.notas_predeterminadas}
+          </p>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export default function Dashboard({
@@ -1145,21 +1349,12 @@ export default function Dashboard({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {colaboradores.map(colab => (
-                  <Card key={colab.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full border border-zinc-800" style={{ backgroundColor: colab.color || '#3b82f6' }} />
-                      <div>
-                        <h4 className="font-bold text-zinc-100 flex items-center gap-1.5">
-                          {colab.nombre}
-                          {!colab.activo && <Badge className="bg-zinc-800 text-zinc-500 text-[8px] h-4">Inactivo</Badge>}
-                        </h4>
-                        {colab.telefono && <p className="text-xs font-mono text-zinc-500">{colab.telefono}</p>}
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenColabDialog(colab)} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </Card>
+                  <ColaboradorCard
+                    key={colab.id}
+                    colab={colab}
+                    onEdit={() => handleOpenColabDialog(colab)}
+                    onDeleted={(updated) => setColaboradores(updated)}
+                  />
                 ))}
               </div>
             </TabsContent>
@@ -1178,16 +1373,12 @@ export default function Dashboard({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {proveedores.map(prov => (
-                  <Card key={prov.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex items-center justify-between p-3.5">
-                    <div>
-                      <h4 className="font-bold text-zinc-100">{prov.nombre}</h4>
-                      {prov.servicio && <p className="text-xs text-blue-400">{prov.servicio}</p>}
-                      {prov.telefono && <p className="text-xs font-mono text-zinc-500 mt-0.5">{prov.telefono}</p>}
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenProvDialog(prov)} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </Card>
+                  <ProveedorCard
+                    key={prov.id}
+                    prov={prov}
+                    onEdit={() => handleOpenProvDialog(prov)}
+                    onDeleted={(updated) => setProveedores(updated)}
+                  />
                 ))}
               </div>
             </TabsContent>
@@ -1206,29 +1397,12 @@ export default function Dashboard({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {plantillas.map(plt => (
-                  <Card key={plt.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex flex-col justify-between p-4 space-y-3">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-zinc-100 text-base">{plt.titulo}</h4>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenPlantillaDialog(plt)} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-zinc-400 mt-1">
-                        <strong className="text-zinc-500">Ruta:</strong> {plt.ruta_origen} ➔ {plt.ruta_destino}
-                      </p>
-                      {plt.puntos_intermedios && plt.puntos_intermedios.length > 0 && (
-                        <p className="text-[11px] text-zinc-500 mt-1 truncate">
-                          <strong className="text-zinc-600">Intermedios:</strong> {plt.puntos_intermedios.join(', ')}
-                        </p>
-                      )}
-                      {plt.notas_predeterminadas && (
-                        <p className="text-[11px] text-zinc-500 italic mt-1 line-clamp-2">
-                          <strong className="text-zinc-600 not-italic">Notas:</strong> {plt.notas_predeterminadas}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
+                  <PlantillaCard
+                    key={plt.id}
+                    plt={plt}
+                    onEdit={() => handleOpenPlantillaDialog(plt)}
+                    onDeleted={(updated) => setPlantillas(updated)}
+                  />
                 ))}
               </div>
             </TabsContent>

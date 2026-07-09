@@ -209,3 +209,17 @@ export async function deleteProveedor(id: string): Promise<{ success: boolean; e
   return { success: true };
 }
 
+export async function deletePlantilla(id: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from('plantillas_itinerario').delete().eq('id', id);
+
+  if (error) {
+    console.error('Error deleting plantilla:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/');
+  return { success: true };
+}
+
+
