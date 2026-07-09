@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { PhoneInput } from 'react-international-phone';
 import 'react-international-phone/style.css';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { logout } from '@/app/actions/auth';
 import {
@@ -12,7 +13,10 @@ import {
   getPlantillas,
   getServicios,
   saveServicio,
-  deleteServicio
+  deleteServicio,
+  deleteColaborador,
+  deleteProveedor,
+  deletePlantilla
 } from '@/app/actions/db';
 import { Colaborador, Proveedor, PlantillaItinerario, ServicioDiario, EstadoPago, EstadoRuta } from '@/types';
 import { saveSubscription, deleteSubscription, sendTestNotification } from '@/app/actions/push';
@@ -23,7 +27,6 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
   CardFooter
 } from '@/components/ui/card';
@@ -48,9 +51,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -68,7 +69,6 @@ import {
   Edit2,
   X,
   SlidersHorizontal,
-  Check,
   Bell,
   BellOff,
   BellRing
@@ -107,14 +107,21 @@ function ColaboradorCard({
   const handleDelete = async () => {
     if (!confirming) { setConfirming(true); return; }
     setLoading(true);
-    const { deleteColaborador, getColaboradores } = await import('@/app/actions/db');
-    const res = await deleteColaborador(colab.id);
-    if (res.success) {
-      const updated = await getColaboradores();
-      onDeleted(updated);
+    try {
+      const res = await deleteColaborador(colab.id);
+      if (res.success) {
+        const updated = await getColaboradores();
+        onDeleted(updated);
+      } else {
+        alert(`Error al eliminar colaborador: ${res.error}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Error: ${msg}`);
+    } finally {
+      setLoading(false);
+      setConfirming(false);
     }
-    setLoading(false);
-    setConfirming(false);
   };
 
   return (
@@ -157,14 +164,21 @@ function ProveedorCard({
   const handleDelete = async () => {
     if (!confirming) { setConfirming(true); return; }
     setLoading(true);
-    const { deleteProveedor, getProveedores } = await import('@/app/actions/db');
-    const res = await deleteProveedor(prov.id);
-    if (res.success) {
-      const updated = await getProveedores();
-      onDeleted(updated);
+    try {
+      const res = await deleteProveedor(prov.id);
+      if (res.success) {
+        const updated = await getProveedores();
+        onDeleted(updated);
+      } else {
+        alert(`Error al eliminar proveedor: ${res.error}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Error: ${msg}`);
+    } finally {
+      setLoading(false);
+      setConfirming(false);
     }
-    setLoading(false);
-    setConfirming(false);
   };
 
   return (
@@ -187,6 +201,81 @@ function ProveedorCard({
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
+      </div>
+    </Card>
+  );
+}
+
+// ── Tarjeta Plantilla con Doble Confirmación de Borrado (Basurero abajo del lápiz) ──
+function PlantillaCard({
+  plt,
+  onEdit,
+  onDeleted
+}: {
+  plt: PlantillaItinerario;
+  onEdit: () => void;
+  onDeleted: (updated: PlantillaItinerario[]) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await deletePlantilla(plt.id);
+      if (res.success) {
+        const fresh = await getPlantillas();
+        onDeleted(fresh);
+      } else {
+        alert(`Error al eliminar plantilla: ${res.error}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Error: ${msg}`);
+    } finally {
+      setLoading(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex flex-col justify-between p-4 space-y-3">
+      <div>
+        <div className="flex justify-between items-start">
+          <h4 className="font-bold text-zinc-100 text-base">{plt.titulo}</h4>
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={loading}
+              onClick={handleDelete}
+              className={`h-8 w-8 transition-colors ${confirming ? 'text-red-400 bg-red-950/40 hover:bg-red-900/40' : 'text-zinc-500 hover:text-red-400'}`}
+              onBlur={() => setConfirming(false)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-xs text-zinc-400 mt-1">
+          <strong className="text-zinc-500">Ruta:</strong> {plt.ruta_origen} ➔ {plt.ruta_destino}
+        </p>
+        {plt.puntos_intermedios && plt.puntos_intermedios.length > 0 && (
+          <p className="text-[11px] text-zinc-500 mt-1 truncate">
+            <strong className="text-zinc-600">Intermedios:</strong> {plt.puntos_intermedios.join(', ')}
+          </p>
+        )}
+        {plt.notas_predeterminadas && (
+          <p className="text-[11px] text-zinc-500 italic mt-1 line-clamp-2">
+            <strong className="text-zinc-600 not-italic">Notas:</strong> {plt.notas_predeterminadas}
+          </p>
+        )}
       </div>
     </Card>
   );
@@ -239,14 +328,26 @@ export default function Dashboard({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [srvMontoColaborador, setSrvMontoColaborador] = useState(0);
   const [srvMontoTotalColaborador, setSrvMontoTotalColaborador] = useState(0);
-  const [srvEstadoPagoColaborador, setSrvEstadoPagoColaborador] = useState<EstadoPago>('Pendiente');
   const [srvDivisa, setSrvDivisa] = useState<'GTQ' | 'USD'>('GTQ');
   const [srvTasaCambio, setSrvTasaCambio] = useState<number>(7.80);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const [isPushSupported, setIsPushSupported] = useState(false);
+  const [isPushSupported] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return 'serviceWorker' in navigator && 'PushManager' in window;
+  });
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
   const [pushLoading, setPushLoading] = useState(false);
+
+  // --- Derived states ---
+  const derivedEstadoPagoColaborador: EstadoPago = (() => {
+    const total = Number(srvMontoTotalColaborador) || 0;
+    const paid = Number(srvMontoColaborador) || 0;
+    if (total <= 0) return 'Pendiente';
+    if (paid === 0) return 'Pendiente';
+    if (paid >= total) return 'Pagado Total';
+    return 'Abono Parcial';
+  })();
 
   // --- Catalog Dialog States ---
   const [isColabDialogOpen, setIsColabDialogOpen] = useState(false);
@@ -356,7 +457,6 @@ export default function Dashboard({
     setSrvTemplateId('none');
     setSrvMontoColaborador(0);
     setSrvMontoTotalColaborador(0);
-    setSrvEstadoPagoColaborador('Pendiente');
     setSrvDivisa('GTQ');
     setIsConfirmingDelete(false);
     setIsServiceDialogOpen(true);
@@ -382,7 +482,6 @@ export default function Dashboard({
     setSrvTemplateId('none');
     setSrvMontoColaborador(Number(service.monto_pagado_colaborador || 0));
     setSrvMontoTotalColaborador(Number(service.monto_total_colaborador || 0));
-    setSrvEstadoPagoColaborador(service.estado_pago_colaborador || 'Pendiente');
     setSrvDivisa(service.divisa || 'GTQ');
     setSrvTasaCambio(Number(service.tasa_cambio || 7.80));
     setIsConfirmingDelete(false);
@@ -429,8 +528,9 @@ export default function Dashboard({
       } else {
         alert(`Error al eliminar: ${response.error}`);
       }
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Error: ${msg}`);
     } finally {
       setLoadingAction(false);
       setIsConfirmingDelete(false);
@@ -457,30 +557,9 @@ export default function Dashboard({
   }, []);
 
 
-  // Auto-calcular estado de pago del colaborador
-  useEffect(() => {
-    const total = Number(srvMontoTotalColaborador) || 0;
-    const paid = Number(srvMontoColaborador) || 0;
-    
-    if (total <= 0) {
-      setSrvEstadoPagoColaborador('Pendiente');
-      return;
-    }
-    
-    if (paid === 0) {
-      setSrvEstadoPagoColaborador('Pendiente');
-    } else if (paid >= total) {
-      setSrvEstadoPagoColaborador('Pagado Total');
-    } else {
-      setSrvEstadoPagoColaborador('Abono Parcial');
-    }
-  }, [srvMontoTotalColaborador, srvMontoColaborador]);
-
   // --- Push Notifications Setup ---
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
-      setIsPushSupported(true);
-      
+    if (isPushSupported) {
       navigator.serviceWorker.ready.then((registration) => {
         registration.pushManager.getSubscription().then((subscription) => {
           if (subscription) {
@@ -490,7 +569,7 @@ export default function Dashboard({
         });
       });
     }
-  }, []);
+  }, [isPushSupported]);
 
   const handleSubscribePush = async () => {
     if (!isPushSupported) return;
@@ -526,9 +605,10 @@ export default function Dashboard({
       } else {
         alert(`Error al registrar el dispositivo: ${res.error}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error('Error al suscribir push:', err);
-      alert(`Error de suscripción: ${err.message}`);
+      alert(`Error de suscripción: ${msg}`);
     } finally {
       setPushLoading(false);
     }
@@ -548,9 +628,10 @@ export default function Dashboard({
       } else {
         alert(`Error al remover del servidor: ${res.error}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error('Error al cancelar suscripción push:', err);
-      alert(`Error: ${err.message}`);
+      alert(`Error: ${msg}`);
     } finally {
       setPushLoading(false);
     }
@@ -564,8 +645,9 @@ export default function Dashboard({
       if (!res.success) {
         alert(`Error al enviar prueba: ${res.error}`);
       }
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Error: ${msg}`);
     } finally {
       setPushLoading(false);
     }
@@ -627,8 +709,9 @@ export default function Dashboard({
         .getPublicUrl(filePath);
 
       setSrvComprobanteUrl(data.publicUrl);
-    } catch (err: any) {
-      alert(`Error al subir la imagen: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Error al subir la imagen: ${msg}`);
     } finally {
       setUploadingImage(false);
     }
@@ -657,7 +740,7 @@ export default function Dashboard({
         comprobante_url: srvComprobanteUrl || null,
         monto_pagado_colaborador: Number(srvMontoColaborador),
         monto_total_colaborador: Number(srvMontoTotalColaborador),
-        estado_pago_colaborador: srvEstadoPagoColaborador,
+        estado_pago_colaborador: derivedEstadoPagoColaborador,
         divisa: srvDivisa,
         tasa_cambio: Number(srvTasaCambio)
       });
@@ -667,8 +750,9 @@ export default function Dashboard({
       } else {
         alert(`Error al guardar: ${response.error}`);
       }
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Error: ${msg}`);
     } finally {
       setLoadingAction(false);
     }
@@ -694,7 +778,7 @@ export default function Dashboard({
   };
 
   // --- Filtros a Nivel Lógico ---
-  const filterServices = (list: ServicioDiario[], dateToMatch?: Date) => {
+  const filterServices = React.useCallback((list: ServicioDiario[], dateToMatch?: Date) => {
     return list.filter(item => {
       // Comparación por Fecha si se especifica
       if (dateToMatch) {
@@ -714,17 +798,17 @@ export default function Dashboard({
 
       return true;
     });
-  };
+  }, [filterColaborador, filterPago]);
 
   // Servicios filtrados para todo el mes (para pintar en el calendario)
   const monthlyFilteredServices = React.useMemo(() => {
     return filterServices(servicios);
-  }, [servicios, filterColaborador, filterPago]);
+  }, [servicios, filterServices]);
 
   // Servicios filtrados para el día seleccionado (para el feed móvil)
   const dailyFilteredServices = React.useMemo(() => {
     return filterServices(servicios, selectedDate);
-  }, [servicios, selectedDate, filterColaborador, filterPago]);
+  }, [servicios, selectedDate, filterServices]);
 
   // Mapear servicios por fecha para búsquedas ultra rápidas en el render de celdas
   const servicesByDateMap = React.useMemo(() => {
@@ -1068,7 +1152,7 @@ export default function Dashboard({
                 <div className="flex flex-col items-center justify-center py-12 text-center text-zinc-500 bg-zinc-900/10 border border-dashed border-zinc-800 rounded-2xl">
                   <CalendarDays className="h-10 w-10 text-zinc-700 mb-3" />
                   <p className="text-sm font-medium">No hay servicios programados para hoy</p>
-                  <p className="text-xs text-zinc-600 mt-1">Presiona el botón "+" para crear uno</p>
+                  <p className="text-xs text-zinc-600 mt-1">Presiona el botón &quot;+&quot; para crear uno</p>
                 </div>
               ) : (
                 dailyFilteredServices.map(service => {
@@ -1290,29 +1374,12 @@ export default function Dashboard({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {plantillas.map(plt => (
-                  <Card key={plt.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden flex flex-col justify-between p-4 space-y-3">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-zinc-100 text-base">{plt.titulo}</h4>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenPlantillaDialog(plt)} className="h-8 w-8 text-zinc-400 hover:text-zinc-200">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-zinc-400 mt-1">
-                        <strong className="text-zinc-500">Ruta:</strong> {plt.ruta_origen} ➔ {plt.ruta_destino}
-                      </p>
-                      {plt.puntos_intermedios && plt.puntos_intermedios.length > 0 && (
-                        <p className="text-[11px] text-zinc-500 mt-1 truncate">
-                          <strong className="text-zinc-600">Intermedios:</strong> {plt.puntos_intermedios.join(', ')}
-                        </p>
-                      )}
-                      {plt.notas_predeterminadas && (
-                        <p className="text-[11px] text-zinc-500 italic mt-1 line-clamp-2">
-                          <strong className="text-zinc-600 not-italic">Notas:</strong> {plt.notas_predeterminadas}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
+                  <PlantillaCard
+                    key={plt.id}
+                    plt={plt}
+                    onEdit={() => handleOpenPlantillaDialog(plt)}
+                    onDeleted={(updated) => setPlantillas(updated)}
+                  />
                 ))}
               </div>
             </TabsContent>
@@ -1476,9 +1543,12 @@ export default function Dashboard({
                     <div className="p-3.5 bg-zinc-950/60 rounded-xl border border-zinc-800/80 flex flex-col items-center">
                       <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block self-start mb-2">Comprobante de Pago</span>
                       <a href={selectedServicio.comprobante_url} target="_blank" rel="noopener noreferrer" className="relative group overflow-hidden rounded-lg">
-                        <img
+                        <Image
                           src={selectedServicio.comprobante_url}
                           alt="Comprobante de Pago"
+                          width={400}
+                          height={240}
+                          unoptimized
                           className="max-h-60 max-w-full rounded-lg object-contain border border-zinc-800 transition-all group-hover:scale-[1.02] shadow-md"
                         />
                       </a>
@@ -1823,8 +1893,8 @@ export default function Dashboard({
                 </div>
                 <div className="flex items-center gap-1.5 text-zinc-400">
                   <span>Estado: </span>
-                  <Badge className={`text-[10px] font-semibold border ${getPagoBadgeColor(srvEstadoPagoColaborador)}`}>
-                    {srvEstadoPagoColaborador}
+                  <Badge className={`text-[10px] font-semibold border ${getPagoBadgeColor(derivedEstadoPagoColaborador)}`}>
+                    {derivedEstadoPagoColaborador}
                   </Badge>
                 </div>
               </div>
