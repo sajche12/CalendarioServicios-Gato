@@ -7,7 +7,11 @@ import { cookies } from 'next/headers';
  * Si es así, crea una cookie de sesión httpOnly válida por 30 días.
  */
 export async function verifyPasscode(passcode: string): Promise<{ success: boolean; error?: string }> {
-  const correctPasscode = process.env.APP_PASSCODE || 'gato2026';
+  const correctPasscode = process.env.APP_PASSCODE;
+
+  if (!correctPasscode) {
+    return { success: false, error: 'El sistema de autenticación no está configurado en el servidor.' };
+  }
 
   if (passcode === correctPasscode) {
     const cookieStore = await cookies();
