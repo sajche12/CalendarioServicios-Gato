@@ -1,0 +1,28 @@
+# ==============================================================================
+# Docker Compose para levantar TourFlow en Producción Local
+# ==============================================================================
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Variables necesarias en tiempo de compilación para Next.js (Client Bundle)
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+    image: tourflow-app:latest
+    container_name: tourflow-web
+    restart: always
+    ports:
+      - "3000:3000"
+    # Carga todas las variables de entorno definidas en .env.local
+    env_file:
+      - .env.local
+    # Sobrescribe o define variables en tiempo de ejecución
+    environment:
+      - NODE_ENV=production
+      - APP_PASSCODE=${APP_PASSCODE}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - CRON_SECRET=${CRON_SECRET}

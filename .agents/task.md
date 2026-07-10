@@ -1,0 +1,2 @@
+- [x] Crear el archivo `docs/historias_uso.md` con las historias de usuario y criterios de aceptación para TourFlow.
+- [x] Crear el reporte `walkthrough.md` resumiendo la adición de las historias de uso.
